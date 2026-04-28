@@ -278,7 +278,7 @@ Generate all 11 sections now.`;
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-6",
+          model: "claude-sonnet-4-20250514",
           max_tokens: 4096,
           system: buildSystemPrompt(
             payer,
@@ -293,7 +293,7 @@ Generate all 11 sections now.`;
     );
 
     if (!claudeResponse.ok) {
-      const errData = await claudeResponse.json();
+      const errText = await claudeResponse.text();
       console.error("Claude API error:", claudeResponse.status);
       return Response.json({
         error: `Claude API error ${claudeResponse.status}`,
@@ -313,7 +313,7 @@ Generate all 11 sections now.`;
       payerType: payerType,
       generatedAt: new Date().toISOString(),
       meta: {
-        model: "claude-sonnet-4-6",
+        model: "claude-sonnet-4-20250514",
         inputTokens: claudeData.usage?.input_tokens,
         outputTokens: claudeData.usage?.output_tokens
       }
