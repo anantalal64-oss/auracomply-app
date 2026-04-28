@@ -573,6 +573,23 @@ function setBtnLoading(id, loading, text) {
   btn.innerHTML = loading ? `<div class="spinner"></div> Generating…` : text;
 }
 
+// ── PARSE JSON SAFELY ──────────────────────
+// If the server returned HTML (e.g. a 404/502 page), surface a readable
+// error instead of letting JSON.parse blow up with "Unexpected token '<'".
+async function parseJsonResponse(res) {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    const snippet = text.replace(/\s+/g, ' ').trim().slice(0, 120);
+    throw new Error(
+      `Server returned a non-JSON response (HTTP ${res.status}). ` +
+      `This usually means the API endpoint is missing or a server error occurred. ` +
+      (snippet ? `Response started with: ${snippet}` : '')
+    );
+  }
+}
+
 // ── GENERATE PA ────────────────────────────
 async function generatePA() {
   const state    = getVal('state');
@@ -632,7 +649,7 @@ async function generatePA() {
       body: JSON.stringify(payload)
     });
 
-    const data = await res.json();
+    const data = await parseJsonResponse(res);
     if (!res.ok || data.error) throw new Error(data.error || data.detail || `Error ${res.status}`);
 
     currentDraft = data.draft;
@@ -685,7 +702,7 @@ async function generateAppeal() {
         bcbaArgument:     getVal('appArgument'),
       }})
     });
-    const data = await res.json();
+    const data = await parseJsonResponse(res);
     if (!res.ok || data.error) throw new Error(data.error || `Error ${res.status}`);
     currentDraft = data.letter;
     document.getElementById('draftText').textContent = data.letter;
@@ -727,7 +744,7 @@ async function lookupPayer() {
         patientData: { name:'Lookup', dob:'2020-01-01', diagnosis:'F84.0 — Autistic Disorder', cptCode: cpt, weeks:'26' }
       })
     });
-    const data = await res.json();
+    const data = await parseJsonResponse(res);
     if (!res.ok || data.error) throw new Error(data.error || `Error ${res.status}`);
     currentDraft = data.draft;
     document.getElementById('draftText').textContent = data.draft;
@@ -758,7 +775,7 @@ async function runValidation() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ draft: currentDraft, payer: getVal('payerName') || 'medicaid' })
     });
-    const r = await res.json();
+    const r = await parseJsonResponse(res);
     const score = r.score || 0;
     const color = score >= 80 ? '#16a34a' : score >= 60 ? '#d97706' : '#dc2626';
     document.getElementById('valScore').textContent = score + '/100';
