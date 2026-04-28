@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AuraComply — AI Prior Authorization</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    :root {
+      --brand: #2563eb;
+      --brand-dark: #1d4ed8;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-400: #9ca3af;
+      --gray-600: #4b5563;
+      --gray-800: #1f2937;
+      --radius: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-800);
+      min-height: 100vh;
+    }
+
+    /* ── Header ────────────────────────────────────────── */
+    header {
+      background: white;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow);
+    }
+
+    .logo { font-size: 18px; font-weight: 700; color: var(--brand); letter-spacing: -0.3px; }
+    .logo span { color: var(--gray-600); font-weight: 400; }
+
+    .disclaimer-banner {
+      background: #fef3c7;
+      border: 1px solid #fcd34d;
+      color: #92400e;
+      text-align: center;
+      padding: 8px 24px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    /* ── Layout ────────────────────────────────────────── */
+    .app-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 16px;
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 768px) {
+      .app-container { grid-template-columns: 1fr; }
+    }
+
+    /* ── Cards ─────────────────────────────────────────── */
+    .card {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--gray-800);
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    /* ── Form Elements ─────────────────────────────────── */
+    .form-group { margin-bottom: 16px; }
+    
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--gray-600);
+      margin-bottom: 6px;
+    }
+
+    .required::after { content: " *"; color: var(--danger); }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--gray-200);
+      border-radius: 6px;
+      font-size: 14px;
+      color: var(--gray-800);
+      background: white;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      outline: none;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    }
+
+    textarea { resize: vertical; min-height: 80px; font-family: inherit; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* ── Tabs ──────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--gray-200);
+      margin-bottom: 20px;
+      gap: 0;
+    }
+
+    .tab {
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--gray-400);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .tab.active { color: var(--brand); border-bottom-color: var(--brand); }
+    .tab:hover:not(.active) { color: var(--gray-600); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Buttons ───────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+      width: 100%;
+    }
+
+    .btn-primary { background: var(--brand); color: white; }
+    .btn-primary:hover:not(:disabled) { background: var(--brand-dark); }
+    .btn-primary:disabled { background: var(--gray-200); color: var(--gray-400); cursor: not-allowed; }
+
+    .btn-secondary {
+      background: white;
+      color: var(--gray-800);
+      border: 1px solid var(--gray-200);
+    }
+    .btn-secondary:hover { background: var(--gray-50); }
+    .btn-success { background: var(--success); color: white; }
+    .btn-success:hover:not(:disabled) { background: #15803d; }
+    .btn-success:disabled { background: var(--gray-200); color: var(--gray-400); cursor: not-allowed; }
+
+    .btn-sm { padding: 6px 14px; font-size: 13px; width: auto; }
+
+    /* ── Output Panel ──────────────────────────────────── */
+    .output-panel {
+      position: sticky;
+      top: 84px;
+    }
+
+    .output-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      color: var(--gray-400);
+      text-align: center;
+      gap: 12px;
+    }
+
+    .output-placeholder svg { opacity: 0.3; }
+    .output-placeholder p { font-size: 14px; }
+
+    #draft-output {
+      display: none;
+    }
+
+    .draft-text {
+      white-space: pre-wrap;
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--gray-800);
+      font-family: 'Georgia', serif;
+      max-height: 500px;
+      overflow-y: auto;
+      padding: 16px;
+      background: var(--gray-50);
+      border: 1px solid var(--gray-200);
+      border-radius: 6px;
+      margin-bottom: 16px;
+    }
+
+    /* ── Status / Validation ───────────────────────────── */
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+
+    .status-success { background: #dcfce7; color: #15803d; }
+    .status-warning { background: #fef3c7; color: #92400e; }
+    .status-error { background: #fee2e2; color: #dc2626; }
+    .status-loading { background: var(--gray-100); color: var(--gray-600); }
+
+    .validation-results { margin-bottom: 16px; }
+    
+    .val-item {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+    }
+    .val-error { background: #fee2e2; color: #dc2626; }
+    .val-warning { background: #fef3c7; color: #92400e; }
+    .val-suggestion { background: #dbeafe; color: #1d4ed8; }
+
+    /* ── Review Checkbox ───────────────────────────────── */
+    .review-check {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 6px;
+      margin-bottom: 12px;
+    }
+
+    .review-check input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin-top: 1px;
+      flex-shrink: 0;
+    }
+
+    .review-check label {
+      font-size: 13px;
+      color: #15803d;
+      font-weight: 500;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    /* ── Loading Spinner ───────────────────────────────── */
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Payer Badge ───────────────────────────────────── */
+    .meta-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-payer { background: #dbeafe; color: #1d4ed8; }
+    .badge-time { background: var(--gray-100); color: var(--gray-600); }
+
+    /* ── Appeal Section ─────────────────────────────────── */
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--gray-400);
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Aura<span>Comply</span> AI</div>
+  <div style="font-size: 12px; color: var(--gray-400);">Beta v0.1 — Nurse-led, HIPAA-aware</div>
+</header>
+
+<div class="disclaimer-banner">
+  ⚠️ AI-generated drafts require licensed clinician review before submission. Not for submission without BCBA approval.
+</div>
+
+<div class="app-container">
+
+  <!-- ── LEFT: Input Panel ── -->
+  <div>
+    <div class="card">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('pa')">PA Generator</div>
+        <div class="tab" onclick="switchTab('appeal')">Appeal Letter</div>
+      </div>
+
+      <!-- PA Generator Tab -->
+      <div id="tab-pa" class="tab-panel active">
+        <div class="form-group">
+          <label class="required">Payer</label>
+          <select id="payer">
+            <option value="">Select payer...</option>
+            <option value="medicaid">Medicaid</option>
+            <option value="anthem">Anthem</option>
+            <option value="uhc">UnitedHealthcare</option>
+            <option value="bcbs">BCBS</option>
+            <option value="aetna">Aetna</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="required">Patient Full Name</label>
+            <input type="text" id="pat-name" placeholder="First Last" />
+          </div>
+          <div class="form-group">
+            <label class="required">Date of Birth</label>
+            <input type="date" id="pat-dob" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="required">ICD-10 Diagnosis</label>
+            <select id="pat-diagnosis">
+              <option value="">Select...</option>
+              <option value="F84.0 — Autistic Disorder">F84.0 — Autistic Disorder</option>
+              <option value="F84.5 — Asperger Syndrome">F84.5 — Asperger Syndrome</option>
+              <option value="F84.8 — Other PDD">F84.8 — Other PDD</option>
+              <option value="F84.9 — PDD, Unspecified">F84.9 — PDD, Unspecified</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Insurance ID</label>
+            <input type="text" id="pat-insid" placeholder="Member ID" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="required">CPT Code</label>
+            <select id="pat-cpt">
+              <option value="">Select...</option>
+              <option value="97153">97153 — Direct ABA (DTT)</option>
+              <option value="97154">97154 — Group DTT</option>
+              <option value="97155">97155 — Protocol Modification (BCBA)</option>
+              <option value="97156">97156 — Family Guidance</option>
+              <option value="97157">97157 — Multi-Family Group</option>
+              <option value="97158">97158 — Group ATB</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="required">Duration (weeks)</label>
+            <input type="number" id="pat-weeks" placeholder="26" min="1" max="52" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Hours Per Week</label>
+          <input type="number" id="pat-hours" placeholder="e.g. 20" min="1" max="40" />
+        </div>
+
+        <p class="section-label" style="margin-top:4px;">Assessment Scores</p>
+        <div class="form-row">
+          <div class="form-group">
+            <label>VB-MAPP Level</label>
+            <input type="text" id="pat-vbmapp" placeholder="e.g. Level 2" />
+          </div>
+          <div class="form-group">
+            <label>ABLLS-R Score</label>
+            <input type="text" id="pat-abllsr" placeholder="e.g. 68/195" />
+          </div>
+        </div>
+
+        <p class="section-label">Requesting BCBA</p>
+        <div class="form-row">
+          <div class="form-group">
+            <label>BCBA Name</label>
+            <input type="text" id="bcba-name" placeholder="Dr. Jane Smith" />
+          </div>
+          <div class="form-group">
+            <label>BCBA License #</label>
+            <input type="text" id="bcba-lic" placeholder="1-23-45678" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Clinical Summary <span style="color:var(--gray-400);font-weight:400;">(2-3 sentences)</span></label>
+          <textarea id="clinical-notes" placeholder="Patient presents with moderate ASD symptoms including..."></textarea>
+        </div>
+
+        <button class="btn btn-primary" onclick="generatePA()" id="generate-btn">
+          Generate PA Draft
+        </button>
+      </div>
+
+      <!-- Appeal Tab -->
+      <div id="tab-appeal" class="tab-panel">
+        <div class="form-group">
+          <label class="required">Payer</label>
+          <select id="appeal-payer">
+            <option value="">Select payer...</option>
+            <option value="Medicaid">Medicaid</option>
+            <option value="Anthem">Anthem</option>
+            <option value="UnitedHealthcare">UnitedHealthcare</option>
+            <option value="BCBS">BCBS</option>
+            <option value="Aetna">Aetna</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="required">Denial Code</label>
+            <input type="text" id="denial-code" placeholder="e.g. CO-97" />
+          </div>
+          <div class="form-group">
+            <label>Patient Diagnosis</label>
+            <input type="text" id="appeal-dx" placeholder="F84.0" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="required">Denial Reason</label>
+          <textarea id="denial-reason" placeholder="Not medically necessary per payer guidelines..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Service Denied</label>
+          <input type="text" id="denied-service" placeholder="97153 — 20 hrs/wk for 26 weeks" />
+        </div>
+        <div class="form-group">
+          <label>Clinical Evidence Available</label>
+          <textarea id="clinical-evidence" placeholder="VB-MAPP Level 2, ABLLS-R 68/195, 6-month progress notes..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>BCBA Clinical Argument</label>
+          <textarea id="bcba-argument" placeholder="Patient requires intensive ABA due to..."></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="generateAppeal()" id="appeal-btn">
+          Generate Appeal Letter
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: Output Panel ── -->
+  <div class="output-panel">
+    <div class="card">
+      <div class="card-title">Generated Draft</div>
+
+      <!-- Placeholder -->
+      <div class="output-placeholder" id="output-placeholder">
+        <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <p>Fill in patient details and<br>click Generate to create a PA draft</p>
+      </div>
+
+      <!-- Loading -->
+      <div id="output-loading" style="display:none;">
+        <div class="status-row status-loading">
+          <div class="spinner" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--brand);"></div>
+          Generating draft... this takes 5–10 seconds
+        </div>
+      </div>
+
+      <!-- Draft Output -->
+      <div id="draft-output">
+        <div class="meta-row">
+          <span class="badge badge-payer" id="out-payer-badge"></span>
+          <span class="badge badge-time" id="out-time-badge"></span>
+        </div>
+
+        <div class="draft-text" id="draft-text"></div>
+
+        <!-- Validation results -->
+        <div class="validation-results" id="validation-results" style="display:none;"></div>
+
+        <!-- Clinician review -->
+        <div class="review-check">
+          <input type="checkbox" id="review-confirm" onchange="toggleApprove()" />
+          <label for="review-confirm">I have reviewed this draft and confirm it is clinically accurate and appropriate for this patient.</label>
+        </div>
+
+        <div style="display:grid; gap:8px;">
+          <button class="btn btn-success" id="approve-btn" disabled onclick="downloadDraft()">
+            ✓ Approve & Download
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="runValidation()" id="validate-btn">
+            Run Pre-Submission Check
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="copyDraft()">
+            Copy to Clipboard
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────
+  let currentDraft = '';
+  let currentPayer = '';
+
+  // ── Tab Switching ──────────────────────────────────────────────
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.target.classList.add('active');
+    // Reset output
+    showPlaceholder();
+  }
+
+  // ── Generate PA ────────────────────────────────────────────────
+  async function generatePA() {
+    const payer = document.getElementById('payer').value;
+    const name = document.getElementById('pat-name').value.trim();
+    const dob = document.getElementById('pat-dob').value;
+    const diagnosis = document.getElementById('pat-diagnosis').value;
+    const cptCode = document.getElementById('pat-cpt').value;
+    const weeks = document.getElementById('pat-weeks').value;
+
+    // Validation
+    if (!payer || !name || !dob || !diagnosis || !cptCode || !weeks) {
+      alert('Please fill in all required fields (marked with *)');
+      return;
+    }
+
+    const patientData = {
+      name,
+      dob,
+      diagnosis,
+      insuranceId: document.getElementById('pat-insid').value,
+      cptCode,
+      weeks,
+      hoursPerWeek: document.getElementById('pat-hours').value,
+      vbmapp: document.getElementById('pat-vbmapp').value,
+      abllsr: document.getElementById('pat-abllsr').value,
+      bcbaName: document.getElementById('bcba-name').value,
+      bcbaLicense: document.getElementById('bcba-lic').value,
+    };
+
+    const clinicianNotes = document.getElementById('clinical-notes').value;
+
+    showLoading();
+
+    try {
+      const res = await fetch('/api/generate-pa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patientData, payer, clinicianNotes })
+      });
+
+      const data = await res.json();
+
+      if (data.error) {
+        showError(data.error);
+        return;
+      }
+
+      currentDraft = data.draft;
+      currentPayer = payer;
+      showDraft(data.draft, payer);
+
+    } catch (err) {
+      showError('Network error. Check your connection and try again.');
+    }
+  }
+
+  // ── Generate Appeal ────────────────────────────────────────────
+  async function generateAppeal() {
+    const payer = document.getElementById('appeal-payer').value;
+    const denialCode = document.getElementById('denial-code').value;
+    const denialReason = document.getElementById('denial-reason').value;
+
+    if (!payer || !denialCode || !denialReason) {
+      alert('Please fill in all required fields (marked with *)');
+      return;
+    }
+
+    const denialData = {
+      payer,
+      denialCode,
+      denialReason,
+      patientDiagnosis: document.getElementById('appeal-dx').value,
+      requestedService: document.getElementById('denied-service').value,
+      clinicalEvidence: document.getElementById('clinical-evidence').value,
+      bcbaArgument: document.getElementById('bcba-argument').value,
+    };
+
+    showLoading();
+
+    try {
+      const res = await fetch('/api/generate-appeal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ denialData })
+      });
+
+      const data = await res.json();
+      if (data.error) { showError(data.error); return; }
+      currentDraft = data.letter;
+      currentPayer = payer;
+      showDraft(data.letter, payer + ' Appeal');
+    } catch (err) {
+      showError('Network error.');
+    }
+  }
+
+  // ── Validation ─────────────────────────────────────────────────
+  async function runValidation() {
+    if (!currentDraft) return;
+
+    const btn = document.getElementById('validate-btn');
+    btn.textContent = 'Checking...';
+    btn.disabled = true;
+
+    try {
+      const res = await fetch('/api/validate-pa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draft: currentDraft, payer: currentPayer })
+      });
+
+      const result = await res.json();
+      displayValidation(result);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      btn.textContent = 'Run Pre-Submission Check';
+      btn.disabled = false;
+    }
+  }
+
+  function displayValidation(result) {
+    const container = document.getElementById('validation-results');
+    let html = '';
+
+    const icon = result.ready ? '✅' : '❌';
+    const scoreColor = result.score >= 80 ? 'status-success' : result.score >= 60 ? 'status-warning' : 'status-error';
+    html += `<div class="status-row ${scoreColor}">${icon} Compliance Score: ${result.score}/100 — ${result.ready ? 'Ready to submit after clinician review' : 'Issues found — review before submitting'}</div>`;
+
+    if (result.errors?.length) {
+      result.errors.forEach(e => { html += `<div class="val-item val-error">🚫 ${e}</div>`; });
+    }
+    if (result.warnings?.length) {
+      result.warnings.forEach(w => { html += `<div class="val-item val-warning">⚠️ ${w}</div>`; });
+    }
+    if (result.suggestions?.length) {
+      result.suggestions.forEach(s => { html += `<div class="val-item val-suggestion">💡 ${s}</div>`; });
+    }
+
+    container.innerHTML = html;
+    container.style.display = 'block';
+  }
+
+  // ── UI Helpers ─────────────────────────────────────────────────
+  function showPlaceholder() {
+    document.getElementById('output-placeholder').style.display = 'flex';
+    document.getElementById('output-loading').style.display = 'none';
+    document.getElementById('draft-output').style.display = 'none';
+  }
+
+  function showLoading() {
+    document.getElementById('output-placeholder').style.display = 'none';
+    document.getElementById('output-loading').style.display = 'block';
+    document.getElementById('draft-output').style.display = 'none';
+  }
+
+  function showDraft(draft, payer) {
+    document.getElementById('output-placeholder').style.display = 'none';
+    document.getElementById('output-loading').style.display = 'none';
+    document.getElementById('draft-output').style.display = 'block';
+    document.getElementById('draft-text').textContent = draft;
+    document.getElementById('out-payer-badge').textContent = payer.toUpperCase();
+    document.getElementById('out-time-badge').textContent = new Date().toLocaleTimeString();
+    document.getElementById('review-confirm').checked = false;
+    document.getElementById('approve-btn').disabled = true;
+    document.getElementById('validation-results').style.display = 'none';
+  }
+
+  function showError(msg) {
+    document.getElementById('output-placeholder').style.display = 'none';
+    document.getElementById('output-loading').style.display = 'none';
+    document.getElementById('draft-output').style.display = 'block';
+    document.getElementById('draft-text').textContent = '⚠️ Error: ' + msg;
+    document.getElementById('review-confirm').checked = false;
+    document.getElementById('approve-btn').disabled = true;
+  }
+
+  function toggleApprove() {
+    document.getElementById('approve-btn').disabled = !document.getElementById('review-confirm').checked;
+  }
+
+  function downloadDraft() {
+    const blob = new Blob([currentDraft], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `PA_Draft_${currentPayer}_${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function copyDraft() {
+    navigator.clipboard.writeText(currentDraft).then(() => {
+      const btn = event.target;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy to Clipboard', 2000);
+    });
+  }
+</script>
+</body>
+</html>
