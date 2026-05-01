@@ -97,12 +97,12 @@ textarea{resize:vertical;min-height:90px}
 </head>
 <body>
 
-<header><script src="https://v1/netlify-identity-widget.js"></script>
+<header>
   <div class="logo">AuraComply<span>AI</span></div>
   <div style="display:flex;align-items:center;gap:16px">
     <div style="font-size:12px;color:var(--text-3)" id="user-email"></div>
     <div style="font-size:12px;color:var(--text-3)">Beta v1.0 · HIPAA-aware</div>
-    <button onclick="logout()" style="background:none;border:1px solid var(--border);
+    <button onclick="sessionStorage.clear();window.location.replace('login.html');" style="background:none;border:1px solid var(--border);
       border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;
       color:var(--text-2);font-family:inherit">Sign Out</button>
   </div>
