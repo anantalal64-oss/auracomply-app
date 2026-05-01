@@ -138,8 +138,6 @@ Output valid JSON matching this exact structure — no extra keys, no missing ke
 
 // ═══════════════════════════════════════════════════════
 // MESSAGE HELPERS
-// add_user_message — appends user turn to messages array
-// add_assistant_message — prefills assistant turn (forces output format)
 // ═══════════════════════════════════════════════════════
 
 const add_user_message = (messages, prompt) => {
@@ -151,7 +149,7 @@ const add_assistant_message = (messages, prefill) => {
 };
 
 // ═══════════════════════════════════════════════════════
-// BUILD USER PROMPT — short key=value snapshot
+// BUILD USER PROMPT
 // ═══════════════════════════════════════════════════════
 
 const buildUserPrompt = (body) => {
@@ -210,9 +208,7 @@ notes=${clinicianNotes || "See clinical documentation."}`;
 };
 
 // ═══════════════════════════════════════════════════════
-// chat() — sends messages to Claude and returns clean text
-// stop_sequences: ["```"] stops Claude at closing fence
-// text.trim() strips leading/trailing whitespace
+// CHAT — calls Claude API
 // ═══════════════════════════════════════════════════════
 
 const chat = async (messages, systemPrompt) => {
@@ -224,22 +220,21 @@ const chat = async (messages, systemPrompt) => {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model:          "claude-sonnet-4-20250514",
+      model:          "claude-haiku-4-5",
       max_tokens:     4096,
       system:         systemPrompt,
       messages:       messages,
-      stop_sequences: ["```"],       // stop at closing fence — no trailing garbage
+      stop_sequences: ["```"],
     }),
   });
 
-  // Use .text() not .json() — prevents HTML parse crash on API errors
   if (!claudeResponse.ok) {
     const errText = await claudeResponse.text();
     throw new Error(`Claude API ${claudeResponse.status}: ${errText.slice(0, 300)}`);
   }
 
   const data = await claudeResponse.json();
-  const text = (data?.content?.[0]?.text || "").trim(); // text.trim()
+  const text = (data?.content?.[0]?.text || "").trim();
   return { text, usage: data.usage };
 };
 
@@ -249,15 +244,119 @@ const chat = async (messages, systemPrompt) => {
 
 const safeParseJSON = (text) => {
   try {
-    // text already stripped of fences because stop_sequences cut them off
-    // but clean just in case
-    const cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
-    const start   = cleaned.indexOf("{");
-    const end     = cleaned.lastIndexOf("}");
+    const cleaned = text
+      .replace(/```json\s*/gi, "")
+      .replace(/```\s*/gi, "")
+      .trim();
+    const start = cleaned.indexOf("{");
+    const end   = cleaned.lastIndexOf("}");
     if (start === -1 || end === -1) throw new Error("No JSON object found");
     return JSON.parse(cleaned.slice(start, end + 1));
   } catch {
     return null;
+  }
+};
+
+// ═══════════════════════════════════════════════════════
+// FORMAT STRUCTURED JSON INTO READABLE DRAFT TEXT
+// ═══════════════════════════════════════════════════════
+
+const formatDraft = (s, payer, state) => {
+  try {
+    return `PRIOR AUTHORIZATION DRAFT — AuraComply AI
+═══════════════════════════════════════════════
+
+SECTION 1 — PRIOR AUTHORIZATION HEADER
+${s.section1?.header || ""}
+${(s.section1?.bullets || []).map((b, i) => `• ${b}`).join("\n")}
+
+SECTION 2 — PATIENT METADATA
+Medicaid ID / Member ID: ${s.section2?.memberId || ""}
+Date of Birth: ${s.section2?.dob || ""}
+Age: ${s.section2?.age || ""}
+Gender: ${s.section2?.gender || ""}
+Address: ${s.section2?.address || ""}
+Payer Type: ${s.section2?.payerType || ""}
+Payer Name: ${s.section2?.payerName || ""}
+Plan ID: ${s.section2?.planId || ""}
+
+SECTION 3 — SERVICE DATA BY CPT
+CPT Code: ${s.section3?.cpt || ""}
+Service Description: ${s.section3?.description || ""}
+Units Per Week: ${s.section3?.unitsPerWeek || ""}
+Units Per Month: ${s.section3?.unitsPerMonth || ""}
+Unit Type: ${s.section3?.unitType || "15 min"}
+Hours Per Day: ${s.section3?.hrsPerDay || ""}
+Hours Per Week: ${s.section3?.hrsPerWeek || ""}
+Effective Dates: ${s.section3?.effectiveDates || ""}
+Authorization Type: ${s.section3?.authType || ""}
+
+SECTION 4 — PROVIDER AND CREDENTIALING
+Rendering BCBA: ${s.section4?.bcbaName || ""}
+BCBA License: ${s.section4?.bcbaLicense || ""}
+BCBA NPI: ${s.section4?.bcbaNpi || ""}
+Supervising Physician: ${s.section4?.physician || ""}
+Physician NPI: ${s.section4?.physicianNpi || ""}
+Clinic / Agency: ${s.section4?.clinic || ""}
+Clinic NPI: ${s.section4?.clinicNpi || ""}
+Enrollment Status: ${s.section4?.enrollmentStatus || ""}
+
+SECTION 5 — CLINICAL DOCUMENTATION
+ICD-10 Diagnosis: ${s.section5?.icd10 || ""}
+Date of Diagnosis: ${s.section5?.diagnosisDate || ""}
+Diagnostic Tool: ${s.section5?.diagnosticTool || ""}
+Assessment Method: ${s.section5?.assessmentMethod || ""}
+Assessment Date: ${s.section5?.assessmentDate || ""}
+
+Key Findings:
+${(s.section5?.keyFindings || []).map((f, i) => `• ${f}`).join("\n")}
+
+Functional Impairments:
+- Communication: ${s.section5?.impairments?.communication || ""}
+- Social Interaction: ${s.section5?.impairments?.social || ""}
+- Activities of Daily Living: ${s.section5?.impairments?.adl || ""}
+- Safety: ${s.section5?.impairments?.safety || ""}
+- Behavior: ${s.section5?.impairments?.behavior || ""}
+
+Treatment Plan Goals:
+${(s.section5?.goals || []).map((g, i) => `${i + 1}. ${g}`).join("\n")}
+
+SECTION 6 — SETTING AND MODALITY
+Place of Service: ${s.section6?.placeOfService || ""}
+Telehealth: ${s.section6?.telehealth || ""}
+Telehealth Modifier: ${s.section6?.telehealthModifier || ""}
+Payer Telehealth Note: ${s.section6?.payerTelehealthNote || ""}
+
+SECTION 7 — PARENT AND CAREGIVER INVOLVEMENT
+97156 Units Per Month: ${s.section7?.units97156 || ""}
+97157 Units Per Month: ${s.section7?.units97157 || ""}
+Who Attends: ${s.section7?.whoAttends || ""}
+Frequency: ${s.section7?.frequency || ""}
+Barriers: ${s.section7?.barriers || ""}
+
+SECTION 8 — AUTHORIZATION FLAGS
+Request Type: ${s.section8?.requestType || ""}
+Prior Authorization Number: ${s.section8?.priorAuthNumber || ""}
+Prior Service Dates: ${s.section8?.priorDates || ""}
+Special Notes: ${s.section8?.notes || ""}
+MUE Compliance: ${s.section8?.mueCompliance || ""}
+
+SECTION 9 — MEDICAL NECESSITY SUMMARY
+${(s.section9?.bullets || []).map((b, i) => `• ${b}`).join("\n")}
+
+Physician Signature: ${s.section9?.physicianSignature || ""}
+BCBA Signature: ${s.section9?.bcbaSignature || ""}
+
+SECTION 10 — PRE-SUBMISSION CHECKLIST
+${(s.section10?.checklist || []).map(c => `☐ ${c}`).join("\n")}
+
+SECTION 11 — AURACOMPLY AI ALIGNMENT
+${(s.section11?.bullets || []).map((b, i) => `• ${b}`).join("\n")}
+
+═══════════════════════════════════════════════
+--- AURACOMPLY DRAFT — Clinician review required before submission. ---`;
+  } catch {
+    return "Error formatting draft. Raw data available in structured field.";
   }
 };
 
@@ -274,7 +373,7 @@ export default async (req) => {
     const body = await req.json();
     const { patientData, payer, state, payerType } = body;
 
-    // ── Validate required fields ──
+    // Validate required fields
     const required = ["name", "dob", "diagnosis", "cptCode", "weeks"];
     const missing  = required.filter(f => !patientData?.[f]);
     if (missing.length > 0) {
@@ -291,17 +390,12 @@ export default async (req) => {
       }, { status: 400 });
     }
 
-    // ── Build messages array ──
+    // Build messages
     const messages = [];
-
-    // Step 1: add user message with patient data prompt
     add_user_message(messages, buildUserPrompt(body));
-
-    // Step 2: prefill assistant with opening ```json fence
-    // This forces Claude to start JSON immediately — no preamble, no explanation
     add_assistant_message(messages, "```json");
 
-    // Step 3: call Claude — stop_sequences: ["```"] cuts off at closing fence
+    // Call Claude
     const systemPrompt = buildSystemPrompt(payer, state, payerType || "Medicaid");
     const { text, usage } = await chat(messages, systemPrompt);
 
@@ -312,39 +406,36 @@ export default async (req) => {
       }, { status: 500 });
     }
 
-    // Step 4: parse the clean JSON — no fences, no garbage
+    // Parse JSON
     const structured = safeParseJSON(text);
 
     if (!structured) {
-      // Fallback — return raw text so frontend still works
       return Response.json({
         draft:       text,
         structured:  null,
         status:      "success_raw",
-        warning:     "JSON parse failed — returning raw text. Check system prompt.",
-        payer,
-        state,
-        payerType,
+        warning:     "JSON parse failed — returning raw text.",
+        payer, state, payerType,
         generatedAt: new Date().toISOString(),
         meta: {
-          model:        "claude-sonnet-4-20250514",
+          model:        "claude-haiku-4-5",
           inputTokens:  usage?.input_tokens,
           outputTokens: usage?.output_tokens
         }
       });
     }
 
-    // ── Return structured JSON + raw draft ──
+    // Format structured JSON into readable draft text
+    const draft = formatDraft(structured, payer, state);
+
     return Response.json({
-      draft:       text,
+      draft,
       structured,
       status:      "success",
-      payer,
-      state,
-      payerType,
+      payer, state, payerType,
       generatedAt: new Date().toISOString(),
       meta: {
-        model:        "claude-sonnet-4-20250514",
+        model:        "claude-haiku-4-5",
         inputTokens:  usage?.input_tokens,
         outputTokens: usage?.output_tokens
       }

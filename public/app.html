@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AuraComply AI — Prior Authorization Generator</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --brand:#2563eb;--brand-dark:#1d4ed8;
+  --success:#16a34a;--danger:#dc2626;--warning:#d97706;
+  --surface:#fff;--surface-2:#f8fafc;--surface-3:#f1f5f9;
+  --border:#e2e8f0;--text:#0f172a;--text-2:#475569;--text-3:#94a3b8;
+  --radius:8px;--shadow:0 1px 3px rgba(0,0,0,0.08)
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--surface-2);color:var(--text);font-size:14px;line-height:1.6;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 24px;display:flex;align-items:center;justify-content:space-between;
+  height:60px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+.logo{font-size:18px;font-weight:700;color:var(--brand)}
+.logo span{color:var(--text-3);font-weight:400;font-size:14px;margin-left:4px}
+.banner{background:#fef3c7;border-bottom:1px solid #fcd34d;color:#92400e;
+  text-align:center;padding:9px 24px;font-size:13px;font-weight:500}
+.app{max-width:1140px;margin:0 auto;padding:24px 16px;
+  display:grid;grid-template-columns:440px 1fr;gap:24px;align-items:start}
+@media(max-width:768px){.app{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:24px;box-shadow:var(--shadow)}
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tab{padding:10px 16px;font-size:13px;font-weight:500;color:var(--text-3);
+  cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.tab.active{color:var(--brand);border-bottom-color:var(--brand)}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.section-label{font-size:11px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.6px;color:var(--text-3);margin:18px 0 10px;
+  padding-bottom:6px;border-bottom:1px solid var(--surface-3)}
+.form-group{margin-bottom:14px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{display:block;font-size:12px;font-weight:500;color:var(--text-2);margin-bottom:5px}
+.req::after{content:" *";color:var(--danger)}
+input,select,textarea{width:100%;padding:9px 12px;border:1px solid var(--border);
+  border-radius:6px;font-size:14px;color:var(--text);background:var(--surface);
+  outline:none;font-family:inherit;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--brand);
+  box-shadow:0 0 0 3px rgba(37,99,235,0.12)}
+textarea{resize:vertical;min-height:90px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px 20px;border-radius:6px;font-size:14px;font-weight:600;
+  cursor:pointer;border:none;transition:all .15s;width:100%;font-family:inherit}
+.btn-primary{background:var(--brand);color:#fff}
+.btn-primary:hover:not(:disabled){background:var(--brand-dark)}
+.btn-primary:disabled{background:var(--border);color:var(--text-3);cursor:not-allowed}
+.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover:not(:disabled){background:var(--surface-2)}
+.btn-secondary:disabled{opacity:.5;cursor:not-allowed}
+.btn-success{background:var(--success);color:#fff}
+.btn-success:hover:not(:disabled){background:#15803d}
+.btn-success:disabled{background:var(--border);color:var(--text-3);cursor:not-allowed}
+.btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.output-sticky{position:sticky;top:84px}
+.placeholder{display:flex;flex-direction:column;align-items:center;
+  justify-content:center;min-height:320px;color:var(--text-3);text-align:center;gap:12px}
+.placeholder svg{opacity:.25}
+.draft-scroll{white-space:pre-wrap;font-size:13px;line-height:1.75;
+  color:var(--text);font-family:Georgia,serif;max-height:540px;
+  overflow-y:auto;padding:16px;background:var(--surface-2);
+  border:1px solid var(--border);border-radius:6px;margin-bottom:14px}
+.meta-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase}
+.badge-blue{background:#dbeafe;color:#1d4ed8}
+.badge-gray{background:var(--surface-3);color:var(--text-2)}
+.status-row{display:flex;align-items:center;gap:8px;padding:10px 14px;
+  border-radius:6px;font-size:13px;font-weight:500;margin-bottom:12px}
+.status-loading{background:var(--surface-3);color:var(--text-2)}
+.status-error{background:#fee2e2;color:var(--danger)}
+.status-warning{background:#fef3c7;color:#92400e}
+.val-bar-wrap{background:var(--surface-3);border-radius:20px;height:8px;margin-bottom:10px;overflow:hidden}
+.val-bar{height:100%;border-radius:20px;transition:width .4s}
+.val-score-row{display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:8px;font-size:13px;font-weight:600}
+.val-item{font-size:12px;padding:5px 10px;border-radius:4px;margin-bottom:4px;
+  display:flex;align-items:flex-start;gap:6px}
+.val-error{background:#fee2e2;color:#dc2626}
+.val-warning{background:#fef3c7;color:#92400e}
+.val-suggestion{background:#dbeafe;color:#1d4ed8}
+.review-box{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;
+  background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:12px}
+.review-box input[type=checkbox]{width:16px;height:16px;margin-top:2px;
+  flex-shrink:0;cursor:pointer;accent-color:var(--success)}
+.review-box label{font-size:13px;color:#15803d;font-weight:500;cursor:pointer;margin:0}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<header><script src="https://v1/netlify-identity-widget.js"></script>
+  <div class="logo">AuraComply<span>AI</span></div>
+  <div style="display:flex;align-items:center;gap:16px">
+    <div style="font-size:12px;color:var(--text-3)" id="user-email"></div>
+    <div style="font-size:12px;color:var(--text-3)">Beta v1.0 · HIPAA-aware</div>
+    <button onclick="logout()" style="background:none;border:1px solid var(--border);
+      border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;
+      color:var(--text-2);font-family:inherit">Sign Out</button>
+  </div>
+</header>
+
+<div class="banner">
+  ⚠️ AI-generated drafts require licensed clinician review before submission. Not for submission without BCBA approval.
+</div>
+
+<div class="app">
+
+  <!-- LEFT FORM PANEL -->
+  <div>
+    <div class="card">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('pa',this)">PA Generator</div>
+        <div class="tab" onclick="switchTab('appeal',this)">Appeal Letter</div>
+        <div class="tab" onclick="switchTab('lookup',this)">Payer Lookup</div>
+      </div>
+
+      <!-- PA GENERATOR TAB -->
+      <div id="tab-pa" class="tab-panel active">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="req">State</label>
+            <select id="state">
+              <option value="">Select state…</option>
+              <option>Alabama</option><option>Alaska</option><option>Arizona</option>
+              <option>Arkansas</option><option>California</option><option>Colorado</option>
+              <option>Connecticut</option><option>Delaware</option><option>Florida</option>
+              <option>Georgia</option><option>Hawaii</option><option>Idaho</option>
+              <option>Illinois</option><option>Indiana</option><option>Iowa</option>
+              <option>Kansas</option><option>Kentucky</option><option>Louisiana</option>
+              <option>Maine</option><option>Maryland</option><option>Massachusetts</option>
+              <option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
+              <option>Missouri</option><option>Montana</option><option>Nebraska</option>
+              <option>Nevada</option><option>New Hampshire</option><option>New Jersey</option>
+              <option>New Mexico</option><option>New York</option><option>North Carolina</option>
+              <option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
+              <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option>
+              <option>South Carolina</option><option>South Dakota</option><option>Tennessee</option>
+              <option value="Texas" selected>Texas</option>
+              <option>Utah</option><option>Vermont</option><option>Virginia</option>
+              <option>Washington</option><option>West Virginia</option>
+              <option>Wisconsin</option><option>Wyoming</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="req">Payer Type</label>
+            <select id="payerType">
+              <option value="">Select…</option>
+              <option value="Medicaid">Medicaid</option>
+              <option value="Commercial">Commercial</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="req">Payer Name</label>
+            <select id="payerName">
+              <option value="">Select payer…</option>
+              <option value="medicaid">Medicaid</option>
+              <option value="anthem">Anthem</option>
+              <option value="uhc">UnitedHealthcare</option>
+              <option value="bcbs">Blue Cross Blue Shield</option>
+              <option value="aetna">Aetna</option>
+              <option value="cigna">Cigna</option>
+              <option value="molina">Molina Healthcare</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Authorization Type</label>
+            <select id="authType">
+              <option value="initial">Initial Authorization</option>
+              <option value="renewal">Renewal</option>
+              <option value="increase">Increase of Services</option>
+              <option value="change">Change of Setting</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="section-label">Patient Information</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="req">Patient Full Name</label>
+            <input type="text" id="patName" placeholder="First Last"/>
+          </div>
+          <div class="form-group">
+            <label class="req">Date of Birth</label>
+            <input type="date" id="patDob"/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="req">ICD-10 Diagnosis</label>
+          <select id="patDx">
+            <option value="">Select diagnosis…</option>
+            <option value="F84.0 — Autistic Disorder">F84.0 — Autistic Disorder</option>
+            <option value="F84.5 — Asperger Syndrome">F84.5 — Asperger Syndrome</option>
+            <option value="F84.8 — Other PDD">F84.8 — Other PDD</option>
+            <option value="F84.9 — PDD Unspecified">F84.9 — PDD Unspecified</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Insurance / Medicaid ID</label>
+            <input type="text" id="insId" placeholder="Member ID"/>
+          </div>
+          <div class="form-group">
+            <label>Gender</label>
+            <select id="gender">
+              <option value="">Select…</option>
+              <option>Male</option><option>Female</option>
+              <option>Non-binary</option><option>Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Patient Address</label>
+          <input type="text" id="address" placeholder="Street, City, State ZIP"/>
+        </div>
+
+        <div class="section-label">Services Requested</div>
+
+        <div class="form-group">
+          <label class="req">CPT Code</label>
+          <select id="cptCode">
+            <option value="">Select CPT code…</option>
+            <option value="97153">97153 — Adaptive Behavior Treatment (DTT 1:1)</option>
+            <option value="97154">97154 — Group Adaptive Behavior Treatment</option>
+            <option value="97155">97155 — Protocol Modification by BCBA</option>
+            <option value="97156">97156 — Family/Caregiver Training (1:1)</option>
+            <option value="97157">97157 — Multi-Family Group Training</option>
+            <option value="97158">97158 — Group ATB with Protocol Modification</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Hours per Week</label>
+            <input type="number" id="hoursWeek" placeholder="e.g. 20" min="1" max="40"/>
+          </div>
+          <div class="form-group">
+            <label class="req">Duration (weeks)</label>
+            <input type="number" id="weeks" placeholder="e.g. 26" min="1" max="52"/>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Service Start Date</label>
+            <input type="date" id="startDate"/>
+          </div>
+          <div class="form-group">
+            <label>Session Setting</label>
+            <select id="setting">
+              <option value="">Select…</option>
+              <option>Home</option><option>Clinic</option>
+              <option>School</option><option>Telehealth</option><option>Mixed</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="section-label">Assessment Scores</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>VB-MAPP Level</label>
+            <input type="text" id="vbmapp" placeholder="e.g. Level 1"/>
+          </div>
+          <div class="form-group">
+            <label>ABLLS-R Score</label>
+            <input type="text" id="abllsr" placeholder="e.g. 42/195"/>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Vineland Score</label>
+            <input type="text" id="vineland" placeholder="e.g. 58"/>
+          </div>
+          <div class="form-group">
+            <label>Assessment Date</label>
+            <input type="date" id="assessDate"/>
+          </div>
+        </div>
+
+        <div class="section-label">Provider Information</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>BCBA Full Name</label>
+            <input type="text" id="bcbaName" placeholder="Dr. Jane Smith"/>
+          </div>
+          <div class="form-group">
+            <label>BCBA License Number</label>
+            <input type="text" id="bcbaLic" placeholder="TX-BCBA-2019-08841"/>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>BCBA NPI</label>
+            <input type="text" id="bcbaNpi" placeholder="1234567890"/>
+          </div>
+          <div class="form-group">
+            <label>Supervising Physician</label>
+            <input type="text" id="supMd" placeholder="Dr. James Okafor MD"/>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Clinic / Agency Name</label>
+            <input type="text" id="clinicName" placeholder="Bright Horizons ABA LLC"/>
+          </div>
+          <div class="form-group">
+            <label>Clinic NPI</label>
+            <input type="text" id="clinicNpi" placeholder="0987654321"/>
+          </div>
+        </div>
+
+        <div class="section-label">Clinical Notes</div>
+
+        <div class="form-group">
+          <label>Clinical Summary</label>
+          <textarea id="clinicalNotes" rows="4"
+            placeholder="Patient presents with moderate ASD symptoms including limited verbal communication, frequent elopement behaviors, and significant delays in adaptive daily living skills..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Include AuraComply AI alignment section?</label>
+          <select id="medicaidArmed">
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary" id="generateBtn" onclick="generatePA()">
+          Generate PA Draft
+        </button>
+
+      </div><!-- end tab-pa -->
+
+      <!-- APPEAL LETTER TAB -->
+      <div id="tab-appeal" class="tab-panel">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="req">Payer Name</label>
+            <input type="text" id="appPayer" placeholder="e.g. UnitedHealthcare"/>
+          </div>
+          <div class="form-group">
+            <label class="req">Denial Code</label>
+            <input type="text" id="appCode" placeholder="e.g. CO-97"/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="req">Denial Reason</label>
+          <textarea id="appReason" rows="3"
+            placeholder="Not medically necessary per payer clinical guidelines..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Patient Diagnosis</label>
+            <input type="text" id="appDx" placeholder="F84.0"/>
+          </div>
+          <div class="form-group">
+            <label>Service Denied</label>
+            <input type="text" id="appService" placeholder="97153 — 20 hrs/wk x 26 wks"/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Clinical Evidence</label>
+          <textarea id="appEvidence" rows="3"
+            placeholder="VB-MAPP Level 1, ABLLS-R 42/195, 6-month progress notes..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>BCBA Clinical Argument</label>
+          <textarea id="appArgument" rows="3"
+            placeholder="Patient requires intensive ABA due to active safety risk..."></textarea>
+        </div>
+
+        <button class="btn btn-primary" id="appealBtn" onclick="generateAppeal()">
+          Generate Appeal Letter
+        </button>
+
+      </div><!-- end tab-appeal -->
+
+      <!-- PAYER LOOKUP TAB -->
+      <div id="tab-lookup" class="tab-panel">
+
+        <div class="form-group">
+          <label class="req">State</label>
+          <select id="lookupState">
+            <option value="">Select state…</option>
+            <option>Texas</option><option>California</option><option>Florida</option>
+            <option>New York</option><option>Virginia</option><option>Illinois</option>
+            <option>Pennsylvania</option><option>Ohio</option><option>Georgia</option>
+            <option>North Carolina</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="req">Payer</label>
+            <select id="lookupPayer">
+              <option value="">Select payer…</option>
+              <option value="medicaid">Medicaid</option>
+              <option value="anthem">Anthem</option>
+              <option value="uhc">UnitedHealthcare</option>
+              <option value="aetna">Aetna</option>
+              <option value="bcbs">BCBS</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="req">CPT Code</label>
+            <select id="lookupCpt">
+              <option value="">Select CPT…</option>
+              <option value="97153">97153</option><option value="97154">97154</option>
+              <option value="97155">97155</option><option value="97156">97156</option>
+              <option value="97157">97157</option><option value="97158">97158</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="lookupBtn" onclick="lookupPayer()">
+          Look Up Requirements
+        </button>
+
+      </div><!-- end tab-lookup -->
+
+    </div><!-- end card -->
+  </div><!-- end left panel -->
+
+  <!-- RIGHT OUTPUT PANEL -->
+  <div class="output-sticky">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-size:15px;font-weight:600">Generated Draft</div>
+        <span class="badge badge-gray hidden" id="tokenBadge"></span>
+      </div>
+
+      <!-- PLACEHOLDER -->
+      <div id="outPlaceholder" class="placeholder">
+        <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <p>Fill in patient details and click Generate to create a PA draft</p>
+      </div>
+
+      <!-- LOADING -->
+      <div id="outLoading" class="hidden">
+        <div class="status-row status-loading">
+          <div class="spinner" style="border-color:rgba(0,0,0,.15);border-top-color:var(--brand)"></div>
+          Generating your PA draft — this takes 10–15 seconds…
+        </div>
+      </div>
+
+      <!-- ERROR -->
+      <div id="outError" class="hidden">
+        <div class="status-row status-error">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span id="outErrorText">An error occurred.</span>
+        </div>
+        <p style="font-size:12px;color:var(--text-3);margin-top:4px">
+          Press F12 → Console tab to see full error details.
+        </p>
+      </div>
+
+      <!-- SUCCESS -->
+      <div id="outSuccess" class="hidden">
+
+        <div class="meta-row">
+          <span class="badge badge-blue" id="metaPayer"></span>
+          <span class="badge badge-gray" id="metaState"></span>
+          <span class="badge badge-gray" id="metaAuth"></span>
+          <span class="badge badge-gray" id="metaTime"></span>
+        </div>
+
+        <div class="draft-scroll" id="draftText"></div>
+
+        <!-- VALIDATION -->
+        <div id="valArea" class="hidden" style="margin-bottom:14px">
+          <div class="val-score-row">
+            <span>Compliance Score</span>
+            <span id="valScore" style="font-size:16px">—</span>
+          </div>
+          <div class="val-bar-wrap">
+            <div class="val-bar" id="valBar" style="width:0%;background:var(--danger)"></div>
+          </div>
+          <div id="valItems"></div>
+        </div>
+
+        <!-- REVIEW CHECKBOX -->
+        <div class="review-box">
+          <input type="checkbox" id="reviewCheck" onchange="toggleApprove()"/>
+          <label for="reviewCheck">
+            I have reviewed this draft and confirm it is clinically accurate and appropriate for this patient.
+          </label>
+        </div>
+
+        <!-- ACTION BUTTONS -->
+        <div class="btn-grid">
+          <button class="btn btn-secondary" style="font-size:13px;padding:8px 14px"
+            onclick="runValidation()">✓ Run Pre-Submission Check</button>
+          <button class="btn btn-secondary" style="font-size:13px;padding:8px 14px"
+            onclick="copyDraft()">⎘ Copy to Clipboard</button>
+          <button class="btn btn-success" style="font-size:13px;padding:8px 14px"
+            id="downloadTxt" disabled onclick="downloadTxt()">↓ Download .txt</button>
+          <button class="btn btn-success" style="font-size:13px;padding:8px 14px"
+            id="downloadPdf" disabled onclick="downloadPdf()">↓ Print / Save PDF</button>
+        </div>
+
+      </div><!-- end outSuccess -->
+
+    </div><!-- end card -->
+  </div><!-- end right panel -->
+
+</div><!-- end app -->
+
+<script>
+// ── STATE ────────────────────────────────
+// AUTH GUARD — redirect to login if not authenticated
+(function initAuthGuard() {
+  if (sessionStorage.getItem('aura_auth') !== 'true') {
+    window.location.replace('login.html'); // FIXED: Prevents loop
+    return;
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    const userEmail = sessionStorage.getItem('aura_user');
+    if (userEmail && document.getElementById('user-email')) {
+      document.getElementById('user-email').textContent = userEmail;
+    }
+  });
+})();
+let currentDraft = '';
+
+// ── TAB SWITCHER ───────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  showState('placeholder');
+}
+
+// Logout function
+function logout() {
+  sessionStorage.removeItem('aura_auth');
+  sessionStorage.removeItem('aura_user');
+  window.location.replace('login.html'); // FIXED: Prevents loop
+}
+
+// ── OUTPUT STATE ───────────────────────────
+function showState(state, msg) {
+  ['outPlaceholder','outLoading','outError','outSuccess'].forEach(id => {
+    document.getElementById(id).classList.add('hidden');
+  });
+  if (state === 'placeholder') document.getElementById('outPlaceholder').classList.remove('hidden');
+  if (state === 'loading')     document.getElementById('outLoading').classList.remove('hidden');
+  if (state === 'error') {
+    document.getElementById('outError').classList.remove('hidden');
+    document.getElementById('outErrorText').textContent = msg || 'An error occurred.';
+  }
+  if (state === 'success') document.getElementById('outSuccess').classList.remove('hidden');
+}
+
+// ── GET FIELD VALUE ────────────────────────
+function getVal(id) {
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+
+// ── BUTTON STATE ───────────────────────────
+function setBtnLoading(id, loading, text) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.disabled = loading;
+  btn.innerHTML = loading ? `<div class="spinner"></div> Generating…` : text;
+}
+
+// ── GENERATE PA ────────────────────────────
+async function generatePA() {
+  const state    = getVal('state');
+  const payer    = getVal('payerName');
+  const name     = getVal('patName');
+  const dob      = getVal('patDob');
+  const diagnosis = getVal('patDx');
+  const cptCode  = getVal('cptCode');
+  const weeks    = getVal('weeks');
+
+  if (!state)    { showState('error','Please select a State.'); return; }
+  if (!payer)    { showState('error','Please select a Payer Name.'); return; }
+  if (!name)     { showState('error','Please enter Patient Full Name.'); return; }
+  if (!dob)      { showState('error','Please enter Date of Birth.'); return; }
+  if (!diagnosis){ showState('error','Please select ICD-10 Diagnosis.'); return; }
+  if (!cptCode)  { showState('error','Please select a CPT Code.'); return; }
+  if (!weeks)    { showState('error','Please enter Duration in weeks.'); return; }
+
+  setBtnLoading('generateBtn', true, 'Generate PA Draft');
+  showState('loading');
+
+  const payload = {
+    state,
+    payerType:  getVal('payerType') || 'Medicaid',
+    payer,
+    payerName:  payer,
+    authType:   getVal('authType'),
+    isMedicaidArmed: getVal('medicaidArmed'),
+    clinicianNotes:  getVal('clinicalNotes'),
+    patientData: {
+      name, dob, diagnosis,
+      insuranceId:  getVal('insId'),
+      gender:       getVal('gender'),
+      address:      getVal('address'),
+      cptCode,
+      hoursPerWeek: getVal('hoursWeek'),
+      weeks,
+      startDate:    getVal('startDate'),
+      setting:      getVal('setting'),
+      vbmapp:       getVal('vbmapp'),
+      abllsr:       getVal('abllsr'),
+      vineland:     getVal('vineland'),
+      assessDate:   getVal('assessDate'),
+      bcbaName:     getVal('bcbaName'),
+      bcbaLicense:  getVal('bcbaLic'),
+      bcbaNpi:      getVal('bcbaNpi'),
+      supervisingMd: getVal('supMd'),
+      clinicName:   getVal('clinicName'),
+      clinicNpi:    getVal('clinicNpi'),
+    }
+  };
+
+  try {
+    const res = await fetch('/api/generate-pa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || data.detail || `Error ${res.status}`);
+
+    currentDraft = data.draft;
+    document.getElementById('draftText').textContent = data.draft;
+    document.getElementById('metaPayer').textContent = payer.toUpperCase();
+    document.getElementById('metaState').textContent = state;
+    document.getElementById('metaAuth').textContent  = getVal('authType') || 'Initial';
+    document.getElementById('metaTime').textContent  = new Date().toLocaleTimeString();
+
+    if (data.meta?.outputTokens) {
+      const tb = document.getElementById('tokenBadge');
+      tb.textContent = data.meta.outputTokens + ' tokens';
+      tb.classList.remove('hidden');
+    }
+
+    document.getElementById('reviewCheck').checked = false;
+    document.getElementById('downloadTxt').disabled = true;
+    document.getElementById('downloadPdf').disabled = true;
+    document.getElementById('valArea').classList.add('hidden');
+    showState('success');
+
+  } catch (err) {
+    console.error('generatePA error:', err);
+    showState('error', err.message || 'Failed to connect. Check API key in Netlify.');
+  } finally {
+    setBtnLoading('generateBtn', false, 'Generate PA Draft');
+  }
+}
+
+// ── GENERATE APPEAL ────────────────────────
+async function generateAppeal() {
+  const payer  = getVal('appPayer');
+  const code   = getVal('appCode');
+  const reason = getVal('appReason');
+  if (!payer || !code || !reason) {
+    showState('error','Please fill in Payer Name, Denial Code, and Denial Reason.');
+    return;
+  }
+  setBtnLoading('appealBtn', true, 'Generate Appeal Letter');
+  showState('loading');
+  try {
+    const res = await fetch('/api/generate-appeal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ denialData: {
+        payer, denialCode: code, denialReason: reason,
+        patientDiagnosis: getVal('appDx'),
+        requestedService: getVal('appService'),
+        clinicalEvidence: getVal('appEvidence'),
+        bcbaArgument:     getVal('appArgument'),
+      }})
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || `Error ${res.status}`);
+    currentDraft = data.letter;
+    document.getElementById('draftText').textContent = data.letter;
+    document.getElementById('metaPayer').textContent = payer.toUpperCase();
+    document.getElementById('metaState').textContent = 'APPEAL';
+    document.getElementById('metaAuth').textContent  = 'Denial: ' + code;
+    document.getElementById('metaTime').textContent  = new Date().toLocaleTimeString();
+    document.getElementById('reviewCheck').checked = false;
+    document.getElementById('downloadTxt').disabled = true;
+    document.getElementById('downloadPdf').disabled = true;
+    document.getElementById('valArea').classList.add('hidden');
+    showState('success');
+  } catch (err) {
+    showState('error', err.message || 'Appeal generation failed.');
+  } finally {
+    setBtnLoading('appealBtn', false, 'Generate Appeal Letter');
+  }
+}
+
+// ── PAYER LOOKUP ───────────────────────────
+async function lookupPayer() {
+  const state = getVal('lookupState');
+  const payer = getVal('lookupPayer');
+  const cpt   = getVal('lookupCpt');
+  if (!state || !payer || !cpt) {
+    showState('error','Please select State, Payer, and CPT Code.');
+    return;
+  }
+  setBtnLoading('lookupBtn', true, 'Look Up Requirements');
+  showState('loading');
+  try {
+    const res = await fetch('/api/generate-pa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        state, payer, payerType: 'Medicaid', payerName: payer,
+        authType: 'lookup', isMedicaidArmed: 'no',
+        clinicianNotes: `LOOKUP ONLY: What are the PA requirements for CPT ${cpt} in ${state} for ${payer}? Include unit caps, modifiers, documentation required, and authorization period.`,
+        patientData: { name:'Lookup', dob:'2020-01-01', diagnosis:'F84.0 — Autistic Disorder', cptCode: cpt, weeks:'26' }
+      })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || `Error ${res.status}`);
+    currentDraft = data.draft;
+    document.getElementById('draftText').textContent = data.draft;
+    document.getElementById('metaPayer').textContent = payer.toUpperCase();
+    document.getElementById('metaState').textContent = state;
+    document.getElementById('metaAuth').textContent  = 'CPT ' + cpt;
+    document.getElementById('metaTime').textContent  = new Date().toLocaleTimeString();
+    document.getElementById('reviewCheck').checked = false;
+    document.getElementById('downloadTxt').disabled = true;
+    document.getElementById('downloadPdf').disabled = true;
+    document.getElementById('valArea').classList.add('hidden');
+    showState('success');
+  } catch (err) {
+    showState('error', err.message || 'Lookup failed.');
+  } finally {
+    setBtnLoading('lookupBtn', false, 'Look Up Requirements');
+  }
+}
+
+// ── VALIDATION ─────────────────────────────
+async function runValidation() {
+  if (!currentDraft) return;
+  const btn = document.querySelector('[onclick="runValidation()"]');
+  btn.textContent = 'Checking…'; btn.disabled = true;
+  try {
+    const res = await fetch('/api/validate-pa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ draft: currentDraft, payer: getVal('payerName') || 'medicaid' })
+    });
+    const r = await res.json();
+    const score = r.score || 0;
+    const color = score >= 80 ? '#16a34a' : score >= 60 ? '#d97706' : '#dc2626';
+    document.getElementById('valScore').textContent = score + '/100';
+    document.getElementById('valScore').style.color = color;
+    document.getElementById('valBar').style.width = score + '%';
+    document.getElementById('valBar').style.background = color;
+    let html = '';
+    (r.errors||[]).forEach(e=>{html+=`<div class="val-item val-error">🚫 ${e}</div>`;});
+    (r.warnings||[]).forEach(w=>{html+=`<div class="val-item val-warning">⚠️ ${w}</div>`;});
+    (r.suggestions||[]).forEach(s=>{html+=`<div class="val-item val-suggestion">💡 ${s}</div>`;});
+    document.getElementById('valItems').innerHTML = html;
+    document.getElementById('valArea').classList.remove('hidden');
+  } catch(err){ console.error(err); }
+  finally { btn.textContent = '✓ Run Pre-Submission Check'; btn.disabled = false; }
+}
+
+// ── REVIEW ─────────────────────────────────
+function toggleApprove() {
+  const checked = document.getElementById('reviewCheck').checked;
+  document.getElementById('downloadTxt').disabled = !checked;
+  document.getElementById('downloadPdf').disabled = !checked;
+}
+
+// ── DOWNLOADS ──────────────────────────────
+function downloadTxt() {
+  if (!currentDraft) return;
+  const fname = `PA_Draft_${getVal('payerName')}_${new Date().toISOString().split('T')[0]}.txt`;
+  const blob = new Blob([currentDraft], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = fname; a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function downloadPdf() {
+  if (!currentDraft) return;
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>AuraComply PA Draft</title>
+  <style>body{font-family:Georgia,serif;font-size:13px;line-height:1.8;padding:40px;
+  max-width:800px;margin:0 auto}pre{white-space:pre-wrap;font-family:Georgia,serif}
+  h1{font-size:16px;border-bottom:2px solid #2563eb;padding-bottom:8px;margin-bottom:20px}
+  .footer{margin-top:30px;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:10px}
+  @media print{body{padding:20px}}</style></head><body>
+  <h1>AuraComply AI — Prior Authorization Draft</h1>
+  <pre>${currentDraft.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+  <div class="footer">Generated by AuraComply AI · ${new Date().toLocaleString()} · Clinician review required</div>
+  <script>window.onload=function(){window.print()}<\/script></body></html>`);
+  win.document.close();
+}
+
+// ── COPY ───────────────────────────────────
+function copyDraft() {
+  if (!currentDraft) return;
+  navigator.clipboard.writeText(currentDraft).then(() => {
+    const btn = document.querySelector('[onclick="copyDraft()"]');
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => { btn.textContent = orig; }, 2000);
+  });
+}
+</script>
+</body>
+</html>
