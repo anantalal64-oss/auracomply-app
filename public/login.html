@@ -17,56 +17,41 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   background:linear-gradient(135deg,#eff6ff 0%,#f0fdf4 100%);
   min-height:100vh;display:flex;align-items:center;
   justify-content:center;padding:24px}
-
 .card{background:#fff;border:1px solid var(--border);
   border-radius:20px;padding:48px 40px;max-width:420px;width:100%;
   box-shadow:0 8px 40px rgba(0,0,0,0.10);text-align:center}
-
 .logo{font-size:24px;font-weight:800;color:var(--brand);margin-bottom:4px}
 .logo span{color:var(--text-3);font-weight:400;font-size:14px}
 .tagline{font-size:14px;color:var(--text-2);margin-bottom:32px}
-
-/* SOCIAL BUTTONS */
 .btn-google{width:100%;padding:14px 20px;border-radius:10px;
-  font-size:15px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);
-  background:#fff;color:var(--text);display:flex;align-items:center;
-  justify-content:center;gap:12px;transition:all .2s;font-family:inherit;
-  margin-bottom:12px}
+  font-size:15px;font-weight:600;cursor:pointer;
+  border:1.5px solid var(--border);background:#fff;color:var(--text);
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  transition:all .2s;font-family:inherit;margin-bottom:12px}
 .btn-google:hover{border-color:#4285f4;
   box-shadow:0 2px 8px rgba(66,133,244,0.2)}
-
 .btn-email{width:100%;padding:14px 20px;border-radius:10px;
   font-size:15px;font-weight:600;cursor:pointer;border:none;
   background:var(--brand);color:#fff;display:flex;align-items:center;
   justify-content:center;gap:12px;transition:all .2s;font-family:inherit}
 .btn-email:hover{background:var(--brand-dark)}
-
 .divider{display:flex;align-items:center;gap:12px;margin:20px 0}
 .divider-line{flex:1;height:1px;background:var(--border)}
 .divider-text{font-size:13px;color:var(--text-3)}
-
 .trust{margin-top:28px;padding-top:20px;border-top:1px solid var(--border);
   font-size:12px;color:var(--text-3);line-height:1.8}
-
 .back{margin-top:16px;font-size:13px;color:var(--text-3)}
 .back a{color:var(--brand);text-decoration:none;font-weight:500}
-
-/* Google icon SVG */
 .google-icon{width:20px;height:20px;flex-shrink:0}
-
-/* Email icon */
-.email-icon{font-size:18px}
 </style>
 </head>
 <body>
 
 <div class="card">
-
   <div class="logo">AuraComply<span>AI</span></div>
   <div class="tagline">ABA Prior Authorization in 60 Seconds</div>
 
-  <!-- GOOGLE BUTTON -->
-  <button class="btn-google" onclick="loginWithGoogle()">
+  <button class="btn-google" onclick="netlifyIdentity.open('login')">
     <svg class="google-icon" viewBox="0 0 24 24">
       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
       <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -82,10 +67,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="divider-line"></div>
   </div>
 
-  <!-- EMAIL BUTTON -->
-  <button class="btn-email" onclick="loginWithEmail()">
-    <span class="email-icon">✉️</span>
-    Continue with Email
+  <button class="btn-email" onclick="netlifyIdentity.open('login')">
+    ✉️ Continue with Email
   </button>
 
   <div class="trust">
@@ -96,32 +79,43 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div class="back">
     <a href="index.html">← Back to home</a>
   </div>
-
 </div>
 
 <script>
-// Netlify Identity handles all auth
-netlifyIdentity.on('login', user => {
+// ═══════════════════════════════════════════════════════
+// FIX: Handle logout cleanly
+// When app.html signs out → it sends user to login.html?logout=1
+// This tells login.html to also log out of Netlify Identity
+// preventing the auto-redirect loop back to app.html
+// ═══════════════════════════════════════════════════════
+
+var params = new URLSearchParams(window.location.search);
+var isLogout = params.get('logout') === '1';
+
+if (isLogout) {
+  // Clear everything — session and netlify identity
+  sessionStorage.clear();
+  netlifyIdentity.logout();
+  // Clean the URL so refresh does not re-trigger logout
+  window.history.replaceState({}, document.title, 'login.html');
+}
+
+// When user successfully logs in via Netlify Identity
+netlifyIdentity.on('login', function(user) {
+  // Save session
   sessionStorage.setItem('aura_auth', 'true');
-  sessionStorage.setItem('aura_user', user.email);
+  sessionStorage.setItem('aura_user', user.email || '');
   netlifyIdentity.close();
-  window.location.href = 'app.html';
+  // Go to app
+  window.location.replace('app.html');
 });
 
-function loginWithGoogle() {
-  netlifyIdentity.open('login');
-}
-
-function loginWithEmail() {
-  netlifyIdentity.open('login');
-}
-
-// Auto redirect if already logged in
-const user = netlifyIdentity.currentUser();
-if (user) {
-  sessionStorage.setItem('aura_auth', 'true');
-  sessionStorage.setItem('aura_user', user.email);
-  window.location.href = 'app.html';
+// Auto redirect ONLY if not a logout AND already logged in
+if (!isLogout) {
+  var user = netlifyIdentity.currentUser();
+  if (user && sessionStorage.getItem('aura_auth') === 'true') {
+    window.location.replace('app.html');
+  }
 }
 </script>
 
