@@ -95,7 +95,9 @@ var isLogout = params.get('logout') === '1';
 if (isLogout) {
   // Clear everything — session and netlify identity
   sessionStorage.clear();
-  netlifyIdentity.logout();
+  if (typeof netlifyIdentity !== "undefined") {
+    netlifyIdentity.logout();
+  }
   // Clean the URL so refresh does not re-trigger logout
   window.history.replaceState({}, document.title, 'login.html');
 }

@@ -572,17 +572,23 @@ textarea{resize:vertical;min-height:90px}
     var emailEl = document.getElementById('user-email');
     if (emailEl) emailEl.textContent = email;
 
-    // Wire sign out button
-    // FIX: ?logout=1 tells login.html to clear netlifyIdentity too
+       // Wire sign out button
+    // FIX: now also logs out of Netlify Identity
     var btn = document.getElementById('signout-btn');
     if (btn) {
-      btn.addEventListener('click', function() {
+      btn.addEventListener('click', function () {
+        // If netlifyIdentity exists, log out of Netlify
+        if (typeof netlifyIdentity !== "undefined") {
+          netlifyIdentity.logout();
+        }
+
+        // Clear your app session
         sessionStorage.clear();
-        window.location.replace('login.html?logout=1');
+
+        // Go to login page with logout flag
+        window.location.href = 'login.html?logout=1';
       });
-    }
-  });
-})();
+    } 
 
 // ═══════════════════════════════════════════════════════
 // ALL APP FUNCTIONS — UNCHANGED
