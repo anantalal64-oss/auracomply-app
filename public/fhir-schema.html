@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FHIR-Ready Prior Authorization Schema | AuraComply AI</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --brand:#2563eb;--brand-dark:#1d4ed8;
+  --text:#0f172a;--text-2:#475569;--text-3:#94a3b8;
+  --border:#e2e8f0;--surface:#f8fafc;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  color:var(--text);line-height:1.6;background:var(--surface)}
+nav{background:#fff;border-bottom:1px solid var(--border);
+  padding:0 24px;height:60px;display:flex;align-items:center;
+  justify-content:space-between;position:sticky;top:0;z-index:100}
+.nav-logo{font-size:18px;font-weight:700;color:var(--brand);
+  text-decoration:none}
+.nav-logo span{color:var(--text-3);font-weight:400;font-size:14px}
+.nav-back{color:var(--brand);text-decoration:none;
+  font-size:14px;font-weight:500}
+.page{max-width:900px;margin:0 auto;padding:60px 24px}
+.page-badge{display:inline-block;background:#dbeafe;color:#1d4ed8;
+  padding:4px 14px;border-radius:20px;font-size:12px;
+  font-weight:700;margin-bottom:16px;text-transform:uppercase}
+h1{font-size:clamp(28px,4vw,40px);font-weight:800;
+  color:var(--text);margin-bottom:16px;line-height:1.2}
+.intro{font-size:16px;color:var(--text-2);
+  max-width:640px;margin-bottom:40px;line-height:1.7}
+.covers{background:#fff;border:1px solid var(--border);
+  border-radius:12px;padding:32px;margin-bottom:40px}
+.covers h2{font-size:18px;font-weight:700;margin-bottom:16px;color:var(--text)}
+.covers ul{padding-left:20px;color:var(--text-2);
+  font-size:15px;line-height:2}
+.fhir-note{background:#eff6ff;border:1px solid #bfdbfe;
+  border-radius:8px;padding:16px 20px;margin-bottom:40px;
+  font-size:14px;color:#1e40af;line-height:1.6}
+.schema-block{background:#0f172a;border-radius:12px;
+  padding:32px;overflow-x:auto}
+.schema-block h2{color:#94a3b8;font-size:13px;
+  font-weight:600;text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:16px}
+pre{margin:0}
+code{font-family:'Courier New',monospace;font-size:13px;
+  line-height:1.7;color:#e2e8f0}
+.back-link{display:inline-block;margin-top:40px;
+  color:var(--brand);font-size:14px;font-weight:500;
+  text-decoration:none}
+.back-link:hover{text-decoration:underline}
+.tag-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px}
+.tag{background:#f1f5f9;border:1px solid var(--border);
+  border-radius:6px;padding:4px 12px;font-size:12px;
+  font-weight:600;color:var(--text-2)}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo">AuraComply<span>AI</span></a>
+  <a href="index.html" class="nav-back">← Back to home</a>
+</nav>
+
+<div class="page">
+
+  <div class="page-badge">FHIR-Ready · CMS-0057 Aligned</div>
+
+  <h1>FHIR-Ready Prior Authorization Schema</h1>
+
+  <p class="intro">
+    AuraComply AI outputs structured PA-ready data that can be
+    mapped directly into FHIR-style bundles. Clinics, EHRs,
+    and revenue-cycle platforms using FHIR-based PA APIs can
+    plug AuraComply AI drafts into standard prior-authorization
+    workflows without manual re-entry.
+  </p>
+
+  <div class="tag-row">
+    <span class="tag">PriorAuthPackage JSON</span>
+    <span class="tag">CPT 97153–97158</span>
+    <span class="tag">ICD-10 F84.x</span>
+    <span class="tag">Payer-specific caps</span>
+    <span class="tag">Compliance score</span>
+    <span class="tag">CMS-0057 aligned</span>
+    <span class="tag">2027 ePA ready</span>
+  </div>
+
+  <div class="covers">
+    <h2>What the Schema Covers</h2>
+    <ul>
+      <li>Patient, payer, and state metadata</li>
+      <li>Service codes (CPT 97153–97158), units,
+        frequency, and period</li>
+      <li>Medical-necessity blocks (ICD-10,
+        functional-status, SMART goals)</li>
+      <li>Required documents (assessment, BCBA report,
+        family-training log)</li>
+      <li>Payer-specific rules (unit caps, required docs,
+        modifiers)</li>
+      <li>Compliance and denial-risk scores with warnings</li>
+      <li>BCBA review gate — no export without clinician
+        approval</li>
+    </ul>
+  </div>
+
+  <div class="fhir-note">
+    <strong>CMS-0057 Prior Authorization Rule (2027):</strong>
+    All major payers must support FHIR-based prior authorization
+    APIs by 2027. AuraComply AI is designed to produce
+    structured output that aligns with this mandate —
+    protecting your clinic's workflow investment today and
+    tomorrow.
+  </div>
+
+  <div class="schema-block">
+    <h2>PriorAuthPackage — Example JSON</h2>
+    <pre><code id="fhir-payload"></code></pre>
+  </div>
+
+  <a href="index.html" class="back-link">← Back to AuraComply AI</a>
+
+</div>
+
+<script>
+const fhirPayload = {
+  resourceType: "PriorAuthPackage",
+  version: "1.0",
+  generatedBy: "AuraComply AI",
+  bcbaReviewed: true,
+  patient: {
+    id: "patient-id-from-clinic",
+    state: "TX",
+    payer: "Medicaid.TX",
+    memberID: "TX1234567890",
+    dob: "2019-03-14",
+    diagnosis: ["F84.0"]
+  },
+  request: {
+    authType: "initial",
+    serviceType: "BehavioralHealth.ABA",
+    codes: [
+      {
+        code: "97153",
+        description: "Adaptive Behavior Treatment by Protocol (DTT 1:1)",
+        units: 80,
+        hoursPerWeek: 20,
+        frequency: "5x/week",
+        period: "2026-05-01/2026-10-31"
+      }
+    ],
+    modifiers: ["HO", "95"],
+    medicalNecessity: {
+      dx: ["F84.0"],
+      assessmentMethod: "VB-MAPP",
+      vbmappLevel: "Level 1",
+      abllsrScore: "42/195",
+      functionalStatus: "severe impairment",
+      goals: [
+        "Patient will use 3-word phrases to request in 8/10 trials by 90 days",
+        "Reduce elopement behaviors from 4-6/week to under 1/week by 90 days",
+        "Increase independent ADL completion from 20% to 60% by 180 days"
+      ]
+    }
+  },
+  provider: {
+    bcbaName: "Dr. Sarah Nguyen",
+    bcbaLicense: "TX-BCBA-2019-08841",
+    bcbaNpi: "1234567890",
+    supervisingPhysician: "Dr. James Okafor MD",
+    clinic: "Bright Horizons ABA LLC",
+    clinicNpi: "0987654321"
+  },
+  documents: {
+    patientAssessment: "PDF/assessment-2026-03-28",
+    BCBAReport: "PDF/bcba-report-2026-04-01",
+    FamilyTrainingLog: "PDF/family-training-2026-04-15",
+    FBACompleted: true
+  },
+  payerRules: {
+    payer: "Medicaid.TX",
+    unitCap: 40,
+    hoursPerDayCap: 8,
+    daysPerWeekCap: 5,
+    authPeriodMonths: 6,
+    renewalRequiresProgressData: true,
+    requiredDocuments: [
+      "patientAssessment",
+      "BCBAReport",
+      "FamilyTrainingLog"
+    ],
+    requiredModifiers: ["HO"],
+    telehealthModifier: "95"
+  },
+  compliance: {
+    score: 94,
+    denialRiskLabel: "Low",
+    status: "ready-for-submission",
+    warnings: [
+      "Confirm VB-MAPP assessment is within 6 months of start date",
+      "Verify HO modifier is on all 97153 line items"
+    ],
+    checklist: [
+      "Diagnosis within payer-allowed window: PASS",
+      "Units within payer caps (80/week vs 40-unit cap): PASS",
+      "BCBA credentials present: PASS",
+      "Family training narrative included: PASS",
+      "BCBA and physician signature placeholders present: PASS"
+    ]
+  }
+};
+
+document.getElementById("fhir-payload").textContent =
+  JSON.stringify(fhirPayload, null, 2);
+</script>
+
+</body>
+</html>
