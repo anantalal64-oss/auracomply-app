@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>AuraComply AI — Prior Authorization Generator</title>
+<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -578,28 +579,27 @@ textarea{resize:vertical;min-height:90px}
     var emailEl = document.getElementById('user-email');
     if (emailEl) emailEl.textContent = email;
 
-    // Wire Sign Out button
+   // Wire Sign Out button
     var btn = document.getElementById('signout-btn');
     if (btn) {
       btn.addEventListener('click', function () {
-
-        // FIX 2: Set localStorage flag BEFORE clearing session
-        // login.html reads this flag to trigger netlifyIdentity.logout()
-        // localStorage survives the page navigation; sessionStorage does not
-        localStorage.setItem('aura_logout', '1');
-
-        // Clear the app session completely
-        sessionStorage.clear();
-
-        // FIX 3: replace() removes app.html from browser history
-        // Back button cannot return to app after this
-        window.location.replace('login.html');
+        btn.disabled = true;
+        btn.textContent = 'Signing out…';
+        netlifyIdentity.logout();
       });
     }
+
+    netlifyIdentity.on('logout', function () {
+      sessionStorage.clear();
+      localStorage.removeItem('aura_auth');
+      localStorage.removeItem('aura_user');
+      localStorage.setItem('aura_logout', '1');
+      window.location.replace('login.html');
+    });
+
   });
 
 })();
-
 // ═══════════════════════════════════════════════════════
 // APP STATE — unchanged
 // ═══════════════════════════════════════════════════════

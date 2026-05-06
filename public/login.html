@@ -117,10 +117,20 @@ netlifyIdentity.on('login', function(user) {
   window.location.replace('app.html');
 });
 
-// Auto redirect ONLY if not a logout AND already logged in
-if (!isLogout) {
-  var user = netlifyIdentity.currentUser();
-  if (user && sessionStorage.getItem('aura_auth') === 'true') {
+netlifyIdentity.on('logout', function () {
+  localStorage.removeItem('aura_logout');
+  sessionStorage.clear();
+});
+
+var wasLoggedOut = localStorage.getItem('aura_logout') === '1';
+
+if (wasLoggedOut) {
+  netlifyIdentity.logout();
+} else {
+  var currentUser = netlifyIdentity.currentUser();
+  if (currentUser) {
+    sessionStorage.setItem('aura_auth', 'true');
+    sessionStorage.setItem('aura_user', currentUser.email);
     window.location.replace('app.html');
   }
 }
