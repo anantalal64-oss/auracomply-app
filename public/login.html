@@ -89,8 +89,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 // preventing the auto-redirect loop back to app.html
 // ═══════════════════════════════════════════════════════
 
+// Check BOTH localStorage flag AND URL param for logout
 var params = new URLSearchParams(window.location.search);
-var isLogout = params.get('logout') === '1';
+var isLogout = params.get('logout') === '1'
+  || localStorage.getItem('aura_logout') === '1';
+
+// Clear the localStorage flag immediately
+localStorage.removeItem('aura_logout');
 
 if (isLogout) {
   // Clear everything — session and netlify identity

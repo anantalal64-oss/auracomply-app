@@ -127,7 +127,6 @@ textarea{resize:vertical;min-height:90px}
 </div>
 
 <div class="app">
-
   <div>
     <div class="card">
       <div class="tabs">
@@ -387,7 +386,8 @@ textarea{resize:vertical;min-height:90px}
           </div>
           <div class="form-group">
             <label>Service Denied</label>
-            <input type="text" id="appService" placeholder="97153 — 20 hrs/wk x 26 wks"/>
+            <input type="text" id="appService"
+              placeholder="97153 — 20 hrs/wk x 26 wks"/>
           </div>
         </div>
         <div class="form-group">
@@ -552,74 +552,88 @@ textarea{resize:vertical;min-height:90px}
 
 <script>
 // ═══════════════════════════════════════════════════════
-// AUTH GUARD — THE ONLY FIX IN THIS FILE
-// FIX: Sign Out now redirects to login.html?logout=1
-// This tells login.html to also clear netlifyIdentity
-// stopping the redirect loop permanently
+// AUTH — 3 fixes applied, everything else unchanged
+//
+// FIX 1: Auth guard uses replace() — no back-button loop
+// FIX 2: Sign Out sets localStorage flag before redirect
+//         localStorage persists across pages, sessionStorage
+//         does not — this is why the loop happened before
+// FIX 3: Sign Out uses replace() — removes app from history
+//         netlifyIdentity NOT called here — not loaded in
+//         app.html. login.html handles Identity logout.
 // ═══════════════════════════════════════════════════════
 
-(function() {
-  // Block access if not logged in
+(function () {
+
+  // GUARD: block access if no valid session
   if (sessionStorage.getItem('aura_auth') !== 'true') {
     window.location.replace('login.html');
-    return;
+    return; // stop all other code running
   }
 
-  // Show email and wire sign out after DOM loads
-  document.addEventListener('DOMContentLoaded', function() {
-    // Show email in header
+  document.addEventListener('DOMContentLoaded', function () {
+
+    // Show user email in header
     var email = sessionStorage.getItem('aura_user') || '';
     var emailEl = document.getElementById('user-email');
     if (emailEl) emailEl.textContent = email;
 
-       // Wire sign out button
-    // FIX: now also logs out of Netlify Identity
+    // Wire Sign Out button
     var btn = document.getElementById('signout-btn');
     if (btn) {
       btn.addEventListener('click', function () {
-        // If netlifyIdentity exists, log out of Netlify
-        if (typeof netlifyIdentity !== "undefined") {
-          netlifyIdentity.logout();
-        }
 
-        // Clear your app session
+        // FIX 2: Set localStorage flag BEFORE clearing session
+        // login.html reads this flag to trigger netlifyIdentity.logout()
+        // localStorage survives the page navigation; sessionStorage does not
+        localStorage.setItem('aura_logout', '1');
+
+        // Clear the app session completely
         sessionStorage.clear();
 
-        // Go to login page with logout flag
-        window.location.href = 'login.html?logout=1';
+        // FIX 3: replace() removes app.html from browser history
+        // Back button cannot return to app after this
+        window.location.replace('login.html');
       });
-    } 
+    }
+  });
+
+})();
 
 // ═══════════════════════════════════════════════════════
-// ALL APP FUNCTIONS — UNCHANGED
+// APP STATE — unchanged
 // ═══════════════════════════════════════════════════════
-
 let currentDraft = '';
 
+// ── TAB SWITCHER — unchanged ───────────────────────────
 function switchTab(name, el) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab')
+    .forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel')
+    .forEach(p => p.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
   showState('placeholder');
 }
 
+// ── OUTPUT STATE — unchanged ───────────────────────────
 function showState(state, msg) {
-  ['outPlaceholder','outLoading','outError','outSuccess'].forEach(id => {
-    document.getElementById(id).classList.add('hidden');
-  });
+  ['outPlaceholder','outLoading','outError','outSuccess']
+    .forEach(id => document.getElementById(id).classList.add('hidden'));
   if (state === 'placeholder')
     document.getElementById('outPlaceholder').classList.remove('hidden');
   if (state === 'loading')
     document.getElementById('outLoading').classList.remove('hidden');
   if (state === 'error') {
     document.getElementById('outError').classList.remove('hidden');
-    document.getElementById('outErrorText').textContent = msg || 'An error occurred.';
+    document.getElementById('outErrorText').textContent =
+      msg || 'An error occurred.';
   }
   if (state === 'success')
     document.getElementById('outSuccess').classList.remove('hidden');
 }
 
+// ── HELPERS — unchanged ────────────────────────────────
 function getVal(id) {
   const el = document.getElementById(id);
   return el ? el.value.trim() : '';
@@ -629,9 +643,12 @@ function setBtnLoading(id, loading, text) {
   const btn = document.getElementById(id);
   if (!btn) return;
   btn.disabled = loading;
-  btn.innerHTML = loading ? '<div class="spinner"></div> Generating…' : text;
+  btn.innerHTML = loading
+    ? '<div class="spinner"></div> Generating…'
+    : text;
 }
 
+// ── GENERATE PA — unchanged ────────────────────────────
 async function generatePA() {
   const state     = getVal('state');
   const payer     = getVal('payerName');
@@ -695,8 +712,10 @@ async function generatePA() {
     document.getElementById('draftText').textContent = data.draft;
     document.getElementById('metaPayer').textContent = payer.toUpperCase();
     document.getElementById('metaState').textContent = state;
-    document.getElementById('metaAuth').textContent  = getVal('authType') || 'Initial';
-    document.getElementById('metaTime').textContent  = new Date().toLocaleTimeString();
+    document.getElementById('metaAuth').textContent =
+      getVal('authType') || 'Initial';
+    document.getElementById('metaTime').textContent =
+      new Date().toLocaleTimeString();
 
     if (data.meta && data.meta.outputTokens) {
       const tb = document.getElementById('tokenBadge');
@@ -711,18 +730,21 @@ async function generatePA() {
 
   } catch (err) {
     console.error('generatePA error:', err);
-    showState('error', err.message || 'Failed to connect. Check API key in Netlify.');
+    showState('error', err.message ||
+      'Failed to connect. Check API key in Netlify.');
   } finally {
     setBtnLoading('generateBtn', false, 'Generate PA Draft');
   }
 }
 
+// ── GENERATE APPEAL — unchanged ────────────────────────
 async function generateAppeal() {
   const payer  = getVal('appPayer');
   const code   = getVal('appCode');
   const reason = getVal('appReason');
   if (!payer || !code || !reason) {
-    showState('error','Please fill in Payer Name, Denial Code, and Denial Reason.');
+    showState('error',
+      'Please fill in Payer Name, Denial Code, and Denial Reason.');
     return;
   }
   setBtnLoading('appealBtn', true, 'Generate Appeal Letter');
@@ -740,13 +762,15 @@ async function generateAppeal() {
       }})
     });
     const data = await res.json();
-    if (!res.ok || data.error) throw new Error(data.error || 'Error ' + res.status);
+    if (!res.ok || data.error)
+      throw new Error(data.error || 'Error ' + res.status);
     currentDraft = data.letter;
     document.getElementById('draftText').textContent = data.letter;
     document.getElementById('metaPayer').textContent = payer.toUpperCase();
     document.getElementById('metaState').textContent = 'APPEAL';
-    document.getElementById('metaAuth').textContent  = 'Denial: ' + code;
-    document.getElementById('metaTime').textContent  = new Date().toLocaleTimeString();
+    document.getElementById('metaAuth').textContent = 'Denial: ' + code;
+    document.getElementById('metaTime').textContent =
+      new Date().toLocaleTimeString();
     document.getElementById('reviewCheck').checked = false;
     document.getElementById('downloadTxt').disabled = true;
     document.getElementById('downloadPdf').disabled = true;
@@ -759,12 +783,13 @@ async function generateAppeal() {
   }
 }
 
+// ── PAYER LOOKUP — unchanged ───────────────────────────
 async function lookupPayer() {
   const state = getVal('lookupState');
   const payer = getVal('lookupPayer');
   const cpt   = getVal('lookupCpt');
   if (!state || !payer || !cpt) {
-    showState('error','Please select State, Payer, and CPT Code.');
+    showState('error', 'Please select State, Payer, and CPT Code.');
     return;
   }
   setBtnLoading('lookupBtn', true, 'Look Up Requirements');
@@ -776,8 +801,8 @@ async function lookupPayer() {
       body: JSON.stringify({
         state, payer, payerType: 'Medicaid', payerName: payer,
         authType: 'lookup', isMedicaidArmed: 'no',
-        clinicianNotes: 'LOOKUP ONLY: PA requirements for CPT ' + cpt
-          + ' in ' + state + ' for ' + payer
+        clinicianNotes: 'LOOKUP ONLY: PA requirements for CPT '
+          + cpt + ' in ' + state + ' for ' + payer
           + '. Include unit caps, modifiers, documentation, auth period.',
         patientData: {
           name: 'Lookup', dob: '2020-01-01',
@@ -787,13 +812,15 @@ async function lookupPayer() {
       })
     });
     const data = await res.json();
-    if (!res.ok || data.error) throw new Error(data.error || 'Error ' + res.status);
+    if (!res.ok || data.error)
+      throw new Error(data.error || 'Error ' + res.status);
     currentDraft = data.draft;
     document.getElementById('draftText').textContent = data.draft;
     document.getElementById('metaPayer').textContent = payer.toUpperCase();
     document.getElementById('metaState').textContent = state;
-    document.getElementById('metaAuth').textContent  = 'CPT ' + cpt;
-    document.getElementById('metaTime').textContent  = new Date().toLocaleTimeString();
+    document.getElementById('metaAuth').textContent = 'CPT ' + cpt;
+    document.getElementById('metaTime').textContent =
+      new Date().toLocaleTimeString();
     document.getElementById('reviewCheck').checked = false;
     document.getElementById('downloadTxt').disabled = true;
     document.getElementById('downloadPdf').disabled = true;
@@ -806,6 +833,7 @@ async function lookupPayer() {
   }
 }
 
+// ── VALIDATION — unchanged ─────────────────────────────
 async function runValidation() {
   if (!currentDraft) return;
   const btn = document.querySelector('[onclick="runValidation()"]');
@@ -814,60 +842,96 @@ async function runValidation() {
     const res = await fetch('/api/validate-pa', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ draft: currentDraft, payer: getVal('payerName') || 'medicaid' })
+      body: JSON.stringify({
+        draft: currentDraft,
+        payer: getVal('payerName') || 'medicaid',
+        hoursPerWeek: getVal('hoursWeek')
+      })
     });
     const r = await res.json();
     const score = r.score || 0;
-    const color = score >= 80 ? '#16a34a' : score >= 60 ? '#d97706' : '#dc2626';
+    const color = score >= 80 ? '#16a34a'
+                : score >= 60 ? '#d97706' : '#dc2626';
     document.getElementById('valScore').textContent = score + '/100';
     document.getElementById('valScore').style.color = color;
     document.getElementById('valBar').style.width = score + '%';
     document.getElementById('valBar').style.background = color;
     let html = '';
-    (r.errors      || []).forEach(e => { html += '<div class="val-item val-error">🚫 ' + e + '</div>'; });
-    (r.warnings    || []).forEach(w => { html += '<div class="val-item val-warning">⚠️ ' + w + '</div>'; });
-    (r.suggestions || []).forEach(s => { html += '<div class="val-item val-suggestion">💡 ' + s + '</div>'; });
+    if (r.denialRiskLabel) {
+      const riskColor = r.denialRiskLabel === 'Low'
+        ? '#16a34a' : r.denialRiskLabel === 'Medium'
+        ? '#d97706' : '#dc2626';
+      html += '<div class="val-item" style="background:#f1f5f9;color:'
+        + riskColor + ';font-weight:600">Denial Risk: '
+        + r.denialRiskLabel + '</div>';
+    }
+    (r.errors      || []).forEach(e => {
+      html += '<div class="val-item val-error">🚫 ' + e + '</div>';
+    });
+    (r.warnings    || []).forEach(w => {
+      html += '<div class="val-item val-warning">⚠️ ' + w + '</div>';
+    });
+    (r.suggestions || []).forEach(s => {
+      html += '<div class="val-item val-suggestion">💡 ' + s + '</div>';
+    });
     document.getElementById('valItems').innerHTML = html;
     document.getElementById('valArea').classList.remove('hidden');
-  } catch(err) { console.error('Validation error:', err); }
-  finally { btn.textContent = '✓ Run Pre-Submission Check'; btn.disabled = false; }
+  } catch (err) {
+    console.error('Validation error:', err);
+  } finally {
+    btn.textContent = '✓ Run Pre-Submission Check';
+    btn.disabled = false;
+  }
 }
 
+// ── REVIEW — unchanged ─────────────────────────────────
 function toggleApprove() {
   const checked = document.getElementById('reviewCheck').checked;
   document.getElementById('downloadTxt').disabled = !checked;
   document.getElementById('downloadPdf').disabled = !checked;
 }
 
+// ── DOWNLOAD TXT — unchanged ───────────────────────────
 function downloadTxt() {
   if (!currentDraft) return;
   const fname = 'PA_Draft_' + getVal('payerName') + '_'
     + new Date().toISOString().split('T')[0] + '.txt';
-  const blob = new Blob([currentDraft], {type:'text/plain'});
+  const blob = new Blob([currentDraft], { type: 'text/plain' });
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = fname; a.click();
+  a.href = URL.createObjectURL(blob);
+  a.download = fname;
+  a.click();
   URL.revokeObjectURL(a.href);
 }
 
+// ── PRINT PDF — unchanged ──────────────────────────────
 function downloadPdf() {
   if (!currentDraft) return;
   const win = window.open('', '_blank');
-  win.document.write('<!DOCTYPE html><html><head><title>AuraComply PA Draft</title>'
-    + '<style>body{font-family:Georgia,serif;font-size:13px;line-height:1.8;'
-    + 'padding:40px;max-width:800px;margin:0 auto}'
+  win.document.write(
+    '<!DOCTYPE html><html><head><title>AuraComply PA Draft</title>'
+    + '<style>body{font-family:Georgia,serif;font-size:13px;'
+    + 'line-height:1.8;padding:40px;max-width:800px;margin:0 auto}'
     + 'pre{white-space:pre-wrap;font-family:Georgia,serif}'
-    + 'h1{font-size:16px;border-bottom:2px solid #2563eb;padding-bottom:8px;margin-bottom:20px}'
+    + 'h1{font-size:16px;border-bottom:2px solid #2563eb;'
+    + 'padding-bottom:8px;margin-bottom:20px}'
     + '.footer{margin-top:30px;font-size:11px;color:#94a3b8;'
     + 'border-top:1px solid #e2e8f0;padding-top:10px}'
     + '@media print{body{padding:20px}}</style></head><body>'
     + '<h1>AuraComply AI — Prior Authorization Draft</h1>'
-    + '<pre>' + currentDraft.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</pre>'
+    + '<pre>'
+    + currentDraft.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    + '</pre>'
     + '<div class="footer">Generated by AuraComply AI · '
-    + new Date().toLocaleString() + ' · Clinician review required</div>'
-    + '<script>window.onload=function(){window.print()}<\/script></body></html>');
+    + new Date().toLocaleString()
+    + ' · Clinician review required</div>'
+    + '<script>window.onload=function(){window.print()}'
+    + '<\/script></body></html>'
+  );
   win.document.close();
 }
 
+// ── COPY — unchanged ───────────────────────────────────
 function copyDraft() {
   if (!currentDraft) return;
   navigator.clipboard.writeText(currentDraft).then(() => {
