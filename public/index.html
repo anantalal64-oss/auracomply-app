@@ -3,256 +3,646 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>AuraComply AI — ABA Prior Authorization in 60 Seconds</title>
+<title>AuraComply AI — Nurse-led AI for ABA Prior Authorizations</title>
+<meta name="description" content="Generate and validate complete payer-aware ABA PA drafts in 60 seconds. Built for BCBAs, billing teams, and clinic owners across all 50 states."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
 :root{
-  --brand:#2563eb;--brand-dark:#1d4ed8;--brand-light:#eff6ff;
-  --success:#16a34a;--text:#0f172a;--text-2:#475569;--text-3:#94a3b8;
-  --border:#e2e8f0;--surface:#ffffff;--surface-2:#f8fafc;
+  --navy:#09152e;
+  --navy-mid:#132040;
+  --navy-light:#1b2d58;
+  --brand:#1b5cdb;
+  --brand-bright:#2a6aed;
+  --brand-glow:rgba(27,92,219,0.18);
+  --mint:#0ab57e;
+  --mint-soft:#e6f8f3;
+  --slate:#3e5080;
+  --slate-mid:#647299;
+  --slate-light:#9aaac7;
+  --gray-50:#f9fafc;
+  --gray-100:#f0f3f8;
+  --gray-200:#e1e7f2;
+  --gray-300:#c8d2e6;
+  --white:#ffffff;
+  --text:#09152e;
+  --text-2:#3e5080;
+  --text-3:#647299;
+  --border:rgba(28,45,88,0.10);
+  --border-mid:rgba(28,45,88,0.18);
+  --shadow-sm:0 2px 8px rgba(9,21,46,0.06);
+  --shadow-md:0 6px 24px rgba(9,21,46,0.09);
+  --shadow-lg:0 16px 48px rgba(9,21,46,0.12);
+  --r-sm:10px;
+  --r-md:16px;
+  --r-lg:24px;
+  --r-xl:32px;
 }
-html{scroll-behavior:smooth}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  color:var(--text);line-height:1.6;overflow-x:hidden}
-nav{position:fixed;top:0;left:0;right:0;z-index:100;
-  background:rgba(255,255,255,0.95);backdrop-filter:blur(10px);
-  border-bottom:1px solid var(--border);padding:0 24px;height:64px;
-  display:flex;align-items:center;justify-content:space-between}
-.nav-logo{font-size:20px;font-weight:700;color:var(--brand)}
-.nav-logo span{color:var(--text-3);font-weight:400;font-size:14px;margin-left:4px}
-.nav-links{display:flex;align-items:center;gap:24px}
-.nav-link{font-size:14px;font-weight:500;color:var(--text-2);
-  text-decoration:none;transition:color .15s}
-.nav-link:hover{color:var(--brand)}
-.nav-cta{background:var(--brand);color:#fff;padding:8px 20px;
-  border-radius:6px;font-size:14px;font-weight:600;text-decoration:none;
-  transition:background .15s}
-.nav-cta:hover{background:var(--brand-dark)}
-.hero{padding:160px 24px 100px;text-align:center;
-  background:linear-gradient(135deg,#eff6ff 0%,#f0fdf4 50%,#fef3c7 100%);
-  min-height:100vh;display:flex;align-items:center;justify-content:center}
-.hero-inner{max-width:860px;margin:0 auto}
-.hero-badge{display:inline-flex;align-items:center;gap:8px;
-  background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;
-  padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;
-  margin-bottom:24px}
-.hero h1{font-size:clamp(32px,5vw,58px);font-weight:800;
-  color:var(--text);line-height:1.1;margin-bottom:20px;letter-spacing:-1px}
-.hero h1 span{color:var(--brand)}
-.hero-sub{font-size:18px;color:var(--text-2);max-width:640px;
-  margin:0 auto 12px;line-height:1.6}
-.hero-sub-2{font-size:14px;color:var(--text-3);
-  margin:0 auto 36px;max-width:500px}
-.hero-actions{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
-.btn-hero{padding:16px 32px;border-radius:8px;font-size:16px;
-  font-weight:700;cursor:pointer;border:none;text-decoration:none;
-  display:inline-flex;align-items:center;gap:8px;transition:all .2s}
-.btn-primary{background:var(--brand);color:#fff;
-  box-shadow:0 4px 14px rgba(37,99,235,0.35)}
-.btn-primary:hover{background:var(--brand-dark);transform:translateY(-1px)}
-.btn-outline{background:#fff;color:var(--brand);border:2px solid var(--brand)}
-.btn-outline:hover{background:var(--brand-light)}
-.hero-trust{margin-top:48px;display:flex;align-items:center;
-  justify-content:center;gap:24px;flex-wrap:wrap}
-.trust-item{display:flex;align-items:center;gap:6px;
-  font-size:13px;color:var(--text-3);font-weight:500}
-.trust-dot{width:6px;height:6px;border-radius:50%;background:#16a34a}
-.stats{background:#fff;padding:60px 24px;border-bottom:1px solid var(--border)}
-.stats-inner{max-width:1000px;margin:0 auto;
-  display:grid;grid-template-columns:repeat(4,1fr);gap:40px}
-@media(max-width:768px){.stats-inner{grid-template-columns:repeat(2,1fr)}}
-.stat{text-align:center}
-.stat-num{font-size:42px;font-weight:800;color:var(--brand);line-height:1}
-.stat-label{font-size:14px;color:var(--text-2);margin-top:6px}
-.section{padding:100px 24px}
-.section-inner{max-width:1000px;margin:0 auto}
-.section-label{font-size:12px;font-weight:700;text-transform:uppercase;
-  letter-spacing:1px;color:var(--brand);margin-bottom:12px}
-.section-title{font-size:clamp(28px,4vw,42px);font-weight:800;
-  color:var(--text);line-height:1.2;margin-bottom:16px}
-.section-sub{font-size:18px;color:var(--text-2);
-  max-width:580px;margin-bottom:60px;line-height:1.6}
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
-@media(max-width:768px){.steps{grid-template-columns:1fr}}
-.step{text-align:center;padding:32px 24px;background:#fff;
-  border:1px solid var(--border);border-radius:12px;
-  box-shadow:0 1px 3px rgba(0,0,0,0.06)}
-.step-num{width:48px;height:48px;border-radius:50%;
-  background:var(--brand-light);color:var(--brand);font-size:20px;
-  font-weight:800;display:inline-flex;align-items:center;
-  justify-content:center;margin-bottom:16px}
-.step h3{font-size:17px;font-weight:700;margin-bottom:8px}
-.step p{font-size:14px;color:var(--text-2);line-height:1.6}
-.features{background:var(--surface-2);padding:100px 24px}
-.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
-@media(max-width:768px){.features-grid{grid-template-columns:1fr}}
-.feature{background:#fff;border:1px solid var(--border);
-  border-radius:12px;padding:28px;transition:box-shadow .2s}
-.feature:hover{box-shadow:0 8px 24px rgba(0,0,0,0.08)}
-.feature-icon{font-size:28px;margin-bottom:12px}
-.feature h3{font-size:17px;font-weight:700;margin-bottom:8px;color:var(--text)}
-.feature p{font-size:14px;color:var(--text-2);line-height:1.6}
-.feature ul{margin-top:8px;padding-left:16px;
-  font-size:14px;color:var(--text-2);line-height:1.8}
-.feature-tag{display:inline-block;background:#fef3c7;color:#92400e;
-  font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;
-  margin-bottom:8px;text-transform:uppercase}
-.preview{padding:100px 24px;background:#fff}
-.sections-list{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;
-  max-width:700px;margin:0 auto}
-@media(max-width:600px){.sections-list{grid-template-columns:1fr}}
-.section-item{display:flex;align-items:center;gap:12px;
-  padding:14px 16px;background:var(--surface-2);
-  border:1px solid var(--border);border-radius:8px}
-.section-check{color:#16a34a;font-size:16px;flex-shrink:0}
-.section-text{font-size:14px;font-weight:500;color:var(--text)}
-.payers{background:#fff;padding:60px 24px;border-top:1px solid var(--border)}
-.payers-inner{max-width:900px;margin:0 auto;text-align:center}
-.payers-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:24px}
-.payer-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
-.payer-pill{background:var(--surface-2);border:1px solid var(--border);
-  border-radius:20px;padding:8px 20px;font-size:13px;
-  font-weight:600;color:var(--text-2)}
-.fhir-banner{background:linear-gradient(135deg,#1e3a5f 0%,#1e40af 100%);
-  padding:60px 24px;text-align:center;color:#fff}
-.fhir-banner h2{font-size:clamp(22px,3vw,36px);font-weight:800;margin-bottom:12px}
-.fhir-banner p{font-size:16px;color:rgba(255,255,255,0.8);
-  max-width:560px;margin:0 auto 24px}
-.fhir-tag{display:inline-block;background:rgba(255,255,255,0.15);
-  border:1px solid rgba(255,255,255,0.3);border-radius:20px;
-  padding:4px 14px;font-size:12px;font-weight:600;margin:4px}
-.pricing{background:var(--surface-2);padding:100px 24px}
-.pricing-card{background:#fff;border:2px solid var(--brand);
-  border-radius:16px;padding:48px;max-width:440px;margin:0 auto;
-  text-align:center;box-shadow:0 8px 32px rgba(37,99,235,0.12)}
-.pricing-badge{background:var(--brand);color:#fff;
-  padding:4px 16px;border-radius:20px;font-size:12px;
-  font-weight:700;display:inline-block;margin-bottom:20px}
-.pricing-price{font-size:56px;font-weight:800;color:var(--text);line-height:1}
-.pricing-period{font-size:16px;color:var(--text-3);margin-bottom:8px}
-.pricing-trial{font-size:14px;color:#16a34a;font-weight:600;margin-bottom:32px}
-.pricing-features{text-align:left;margin-bottom:32px;
-  display:flex;flex-direction:column;gap:12px}
-.pricing-feature{display:flex;align-items:flex-start;gap:10px;
-  font-size:14px;color:var(--text-2)}
-.pricing-feature span:first-child{color:#16a34a;font-size:16px;flex-shrink:0}
-.cta{background:linear-gradient(135deg,#1e40af 0%,#7c3aed 100%);
-  padding:100px 24px;text-align:center}
-.cta h2{font-size:clamp(28px,4vw,48px);font-weight:800;
-  color:#fff;margin-bottom:16px;line-height:1.2}
-.cta p{font-size:18px;color:rgba(255,255,255,0.8);
-  max-width:480px;margin:0 auto 40px}
-footer{background:#0f172a;color:#94a3b8;padding:48px 24px;text-align:center}
-.footer-logo{font-size:20px;font-weight:700;color:#fff;margin-bottom:8px}
-.footer-tagline{font-size:14px;margin-bottom:24px}
-.footer-links{display:flex;justify-content:center;gap:24px;
-  flex-wrap:wrap;margin-bottom:24px}
-.footer-link{color:#94a3b8;text-decoration:none;font-size:13px}
-.footer-link:hover{color:#fff}
-.footer-copy{font-size:12px;color:#475569}
-@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}
-  to{opacity:1;transform:translateY(0)}}
-.hero-inner{animation:fadeUp .6s ease both}
+
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+body{
+  font-family:'DM Sans',system-ui,sans-serif;
+  background:var(--white);
+  color:var(--text);
+  line-height:1.6;
+  overflow-x:hidden;
+}
+a{text-decoration:none;color:inherit}
+
+/* ── NAV ─────────────────────────────────────── */
+nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(255,255,255,0.92);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--border);
+  padding:0 5vw;
+  height:68px;display:flex;align-items:center;justify-content:space-between;
+}
+.nav-brand{display:flex;align-items:center;gap:11px}
+.nav-logo{
+  width:38px;height:38px;border-radius:10px;
+  background:linear-gradient(135deg,var(--navy),var(--brand));
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:17px;font-weight:700;letter-spacing:-.5px;
+  box-shadow:0 4px 14px rgba(27,92,219,0.3);
+}
+.nav-name{font-weight:700;font-size:17px;color:var(--navy);letter-spacing:-.3px}
+.nav-name span{color:var(--brand)}
+.nav-links{display:flex;align-items:center;gap:28px}
+.nav-link{font-size:14px;font-weight:500;color:var(--text-2);transition:color .2s}
+.nav-link:hover{color:var(--navy)}
+.nav-cta{
+  background:var(--brand);color:#fff;
+  padding:9px 22px;border-radius:var(--r-sm);
+  font-size:14px;font-weight:600;
+  box-shadow:0 4px 16px rgba(27,92,219,0.28);
+  transition:all .2s;
+}
+.nav-cta:hover{background:var(--brand-bright);transform:translateY(-1px);box-shadow:0 6px 20px rgba(27,92,219,0.35)}
+
+/* ── BUTTONS ─────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:15px 30px;border-radius:var(--r-sm);font-weight:600;font-size:16px;
+  cursor:pointer;border:none;transition:all .22s;white-space:nowrap;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--brand),var(--brand-bright));
+  color:#fff;box-shadow:0 6px 24px rgba(27,92,219,0.32);
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(27,92,219,0.38)}
+.btn-ghost{
+  background:transparent;color:var(--navy);
+  border:1.5px solid var(--border-mid);
+}
+.btn-ghost:hover{background:var(--gray-100);border-color:var(--gray-300)}
+
+/* ── LAYOUT ──────────────────────────────────── */
+.wrap{max-width:1140px;margin:0 auto;padding:0 5vw}
+.section{padding:96px 0}
+.section-sm{padding:64px 0}
+.label{
+  display:inline-block;font-size:12px;font-weight:700;letter-spacing:1.2px;
+  text-transform:uppercase;color:var(--brand);margin-bottom:14px;
+}
+.section-title{
+  font-family:'DM Serif Display',Georgia,serif;
+  font-size:clamp(32px,4vw,48px);font-weight:400;
+  color:var(--navy);line-height:1.12;letter-spacing:-.03em;
+  margin-bottom:16px;
+}
+.section-sub{font-size:18px;color:var(--text-3);line-height:1.65;max-width:640px;margin-bottom:56px}
+.center{text-align:center}
+.center .section-sub{margin-left:auto;margin-right:auto}
+
+/* ── HERO ────────────────────────────────────── */
+.hero{
+  padding:112px 0 88px;
+  background:linear-gradient(165deg,#f4f7ff 0%,#edf2ff 35%,#f9fffe 70%,#f4f8f6 100%);
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;top:-120px;right:-160px;
+  width:600px;height:600px;border-radius:50%;
+  background:radial-gradient(circle,rgba(27,92,219,0.07) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero::after{
+  content:'';position:absolute;bottom:-80px;left:-80px;
+  width:400px;height:400px;border-radius:50%;
+  background:radial-gradient(circle,rgba(10,181,126,0.06) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-inner{
+  display:grid;grid-template-columns:1.1fr 0.9fr;
+  gap:64px;align-items:center;position:relative;z-index:1;
+}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:#e8f5ee;color:#0a7d58;
+  border:1px solid #b6e4d1;
+  padding:6px 14px;border-radius:999px;
+  font-size:13px;font-weight:600;margin-bottom:22px;
+}
+.hero-badge-dot{width:7px;height:7px;border-radius:50%;background:var(--mint)}
+.hero h1{
+  font-family:'DM Serif Display',Georgia,serif;
+  font-size:clamp(40px,5vw,60px);font-weight:400;
+  color:var(--navy);line-height:1.06;letter-spacing:-.04em;
+  margin-bottom:20px;
+}
+.hero h1 em{font-style:italic;color:var(--brand)}
+.hero-sub{font-size:19px;color:var(--text-2);line-height:1.6;max-width:52ch;margin-bottom:36px}
+.hero-actions{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:40px}
+.proof-strip{
+  display:flex;gap:0;flex-wrap:wrap;
+  border:1px solid var(--border-mid);border-radius:var(--r-md);
+  background:#fff;overflow:hidden;
+  box-shadow:var(--shadow-sm);
+}
+.proof-item{
+  flex:1;min-width:140px;padding:18px 20px;
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;gap:4px;
+}
+.proof-item:last-child{border-right:none}
+.proof-num{font-family:'DM Serif Display',serif;font-size:28px;color:var(--navy);line-height:1}
+.proof-label{font-size:13px;color:var(--text-3);font-weight:500;line-height:1.3}
+.hero-card{
+  background:#fff;border:1px solid var(--border-mid);
+  border-radius:var(--r-xl);padding:32px;
+  box-shadow:var(--shadow-lg);
+  position:relative;
+}
+.hero-card::before{
+  content:'';position:absolute;inset:0;border-radius:var(--r-xl);
+  background:linear-gradient(135deg,rgba(27,92,219,0.02),transparent);
+  pointer-events:none;
+}
+.card-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:22px;padding-bottom:18px;
+  border-bottom:1px solid var(--gray-200);
+}
+.card-header-title{font-size:13px;font-weight:600;color:var(--slate)}
+.card-chip{
+  background:linear-gradient(135deg,#e8f5f0,#d4f0e6);
+  color:#0a7d58;border:1px solid #b6e4d1;
+  padding:5px 12px;border-radius:999px;
+  font-size:12px;font-weight:700;
+}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.field{
+  background:var(--gray-50);border:1px solid var(--border);
+  border-radius:var(--r-sm);padding:12px 14px;
+}
+.field-label{font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px}
+.field-value{font-size:14px;font-weight:600;color:var(--navy)}
+.field-wide{grid-column:1/-1}
+.status-row{
+  margin-top:18px;padding:14px 18px;
+  background:linear-gradient(135deg,#e8f5f0,#f0fff8);
+  border:1px solid #b6e4d1;border-radius:var(--r-sm);
+  display:flex;align-items:center;gap:10px;
+}
+.status-dot{width:9px;height:9px;border-radius:50%;background:var(--mint);flex-shrink:0}
+.status-text{font-size:13.5px;font-weight:600;color:#0a7d58}
+
+/* ── TRUST STRIP ─────────────────────────────── */
+.trust{
+  padding:40px 0;
+  background:#fff;
+  border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+}
+.trust-inner{
+  display:flex;align-items:center;justify-content:center;
+  gap:12px;flex-wrap:wrap;
+}
+.trust-pill{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--gray-50);border:1px solid var(--border-mid);
+  border-radius:999px;padding:9px 18px;
+  font-size:13.5px;font-weight:600;color:var(--navy);
+}
+.trust-pill-icon{
+  width:20px;height:20px;border-radius:50%;
+  background:var(--brand);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:10px;font-weight:700;
+}
+
+/* ── WHAT IT DOES ────────────────────────────── */
+.what-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.what-card{
+  background:#fff;border:1px solid var(--border-mid);
+  border-radius:var(--r-lg);padding:28px 24px;
+  box-shadow:var(--shadow-sm);
+  transition:all .25s;
+}
+.what-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md)}
+.what-icon{
+  width:48px;height:48px;border-radius:12px;
+  background:linear-gradient(135deg,#eef2ff,#e0e9ff);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;margin-bottom:16px;
+}
+.what-card h3{font-size:16px;font-weight:700;color:var(--navy);margin-bottom:8px}
+.what-card p{font-size:14px;color:var(--text-3);line-height:1.6}
+
+/* ── FEATURES ────────────────────────────────── */
+.features-bg{background:var(--gray-50)}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.feat{
+  background:#fff;border:1px solid var(--border-mid);
+  border-radius:var(--r-lg);padding:30px 26px;
+  box-shadow:var(--shadow-sm);
+  transition:all .25s;
+}
+.feat:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.feat-tag{
+  display:inline-block;font-size:11px;font-weight:700;letter-spacing:.7px;
+  text-transform:uppercase;padding:3px 10px;border-radius:5px;
+  background:#eef2ff;color:var(--brand);margin-bottom:12px;
+}
+.feat h3{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:10px}
+.feat p,.feat li{font-size:14px;color:var(--text-3);line-height:1.65}
+.feat ul{padding-left:18px}
+.feat li{margin-bottom:6px}
+
+/* ── HOW IT WORKS ────────────────────────────── */
+.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;position:relative}
+.steps-grid::before{
+  content:'';position:absolute;top:36px;left:calc(16.67% + 28px);
+  right:calc(16.67% + 28px);height:1px;
+  border-top:2px dashed var(--gray-300);z-index:0;
+}
+.step-card{
+  background:#fff;border:1px solid var(--border-mid);
+  border-radius:var(--r-lg);padding:32px 26px;
+  box-shadow:var(--shadow-sm);
+  position:relative;z-index:1;text-align:center;
+  transition:all .25s;
+}
+.step-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md)}
+.step-num{
+  width:52px;height:52px;border-radius:50%;
+  background:linear-gradient(135deg,var(--brand),var(--brand-bright));
+  color:#fff;font-size:20px;font-weight:700;
+  display:inline-flex;align-items:center;justify-content:center;
+  margin:0 auto 20px;
+  box-shadow:0 6px 18px rgba(27,92,219,0.28);
+}
+.step-card h3{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:10px}
+.step-card p{font-size:14px;color:var(--text-3);line-height:1.65}
+
+/* ── FOUNDER ─────────────────────────────────── */
+.founder-card{
+  display:grid;grid-template-columns:auto 1fr;
+  gap:40px;align-items:center;
+  background:#fff;border:1px solid var(--border-mid);
+  border-radius:var(--r-xl);padding:48px;
+  box-shadow:var(--shadow-md);
+  max-width:820px;margin:0 auto;
+}
+.founder-avatar{
+  width:100px;height:100px;border-radius:50%;
+  background:linear-gradient(135deg,var(--navy),var(--brand));
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-family:'DM Serif Display',serif;font-size:38px;
+  flex-shrink:0;box-shadow:var(--shadow-md);
+}
+.founder-text blockquote{
+  font-family:'DM Serif Display',serif;
+  font-size:22px;font-style:italic;color:var(--navy);
+  line-height:1.45;margin-bottom:18px;
+  border-left:3px solid var(--brand);
+  padding-left:20px;
+}
+.founder-text p{font-size:16px;color:var(--text-2);line-height:1.65}
+.founder-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  margin-top:16px;background:var(--mint-soft);
+  color:#0a7d58;border:1px solid #b6e4d1;
+  border-radius:999px;padding:5px 14px;font-size:13px;font-weight:600;
+}
+
+/* ── TESTIMONIALS ────────────────────────────── */
+.test-bg{background:var(--navy);position:relative;overflow:hidden}
+.test-bg::before{
+  content:'';position:absolute;top:-100px;right:-100px;
+  width:500px;height:500px;border-radius:50%;
+  background:radial-gradient(circle,rgba(27,92,219,0.2) 0%,transparent 70%);
+}
+.test-bg .section-title{color:#fff}
+.test-bg .section-sub{color:rgba(255,255,255,0.6)}
+.test-bg .label{color:#7aa7f8}
+.test-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.test-card{
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:var(--r-lg);padding:30px 26px;
+  transition:all .25s;
+}
+.test-card:hover{background:rgba(255,255,255,0.09);transform:translateY(-3px)}
+.test-stars{color:#f7b731;font-size:14px;letter-spacing:2px;margin-bottom:16px}
+.test-quote{
+  font-family:'DM Serif Display',serif;font-style:italic;
+  font-size:17.5px;color:rgba(255,255,255,0.92);line-height:1.5;
+  margin-bottom:20px;
+}
+.test-author{font-size:13.5px;font-weight:600;color:rgba(255,255,255,0.55)}
+.test-role{font-size:13px;color:rgba(255,255,255,0.38);margin-top:2px}
+
+/* ── PRICING ─────────────────────────────────── */
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;align-items:stretch}
+.price-card{
+  background:#fff;border:1.5px solid var(--border-mid);
+  border-radius:var(--r-xl);padding:36px 30px;
+  box-shadow:var(--shadow-sm);
+  display:flex;flex-direction:column;
+  transition:all .25s;
+}
+.price-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.price-card.featured{
+  border-color:var(--brand);
+  box-shadow:0 8px 32px rgba(27,92,219,0.18);
+  position:relative;
+}
+.featured-badge{
+  position:absolute;top:-14px;left:50%;transform:translateX(-50%);
+  background:var(--brand);color:#fff;
+  font-size:12px;font-weight:700;letter-spacing:.5px;
+  padding:4px 18px;border-radius:999px;white-space:nowrap;
+}
+.price-tier{font-size:14px;font-weight:700;color:var(--text-3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.7px}
+.price-desc{font-size:14px;color:var(--text-3);margin-bottom:24px}
+.price-amount{font-family:'DM Serif Display',serif;font-size:52px;color:var(--navy);line-height:1;margin-bottom:4px}
+.price-amount span{font-size:18px;color:var(--text-3);font-family:'DM Sans',sans-serif;font-weight:500}
+.price-period{font-size:14px;color:var(--text-3);margin-bottom:6px}
+.price-trial{font-size:13.5px;color:var(--mint);font-weight:600;margin-bottom:28px}
+.price-features{flex:1;margin-bottom:28px;display:flex;flex-direction:column;gap:11px}
+.price-feat{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-2)}
+.price-feat-check{color:var(--mint);font-size:16px;flex-shrink:0;margin-top:1px}
+.price-btn{width:100%;padding:14px;border-radius:var(--r-sm);font-size:15px;font-weight:700;cursor:pointer;border:none;transition:all .2s;text-align:center}
+.price-btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand-bright));color:#fff;box-shadow:0 6px 20px rgba(27,92,219,0.28)}
+.price-btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(27,92,219,0.35)}
+.price-btn-ghost{background:transparent;color:var(--navy);border:1.5px solid var(--border-mid)}
+.price-btn-ghost:hover{background:var(--gray-50);border-color:var(--gray-300)}
+
+/* ── FAQ ─────────────────────────────────────── */
+.faq-bg{background:var(--gray-50)}
+.faq-list{max-width:740px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+details{
+  background:#fff;border:1px solid var(--border-mid);
+  border-radius:var(--r-md);overflow:hidden;
+  box-shadow:var(--shadow-sm);
+}
+details[open]{box-shadow:var(--shadow-md)}
+summary{
+  cursor:pointer;font-size:16.5px;font-weight:700;color:var(--navy);
+  padding:22px 26px;list-style:none;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:16px;
+}
+summary::-webkit-details-marker{display:none}
+summary::after{
+  content:'+';font-size:22px;font-weight:300;color:var(--brand);
+  flex-shrink:0;transition:transform .2s;
+}
+details[open] summary::after{transform:rotate(45deg)}
+.faq-body{padding:0 26px 22px;font-size:15px;color:var(--text-2);line-height:1.7}
+
+/* ── FINAL CTA ───────────────────────────────── */
+.cta-section{
+  padding:96px 0;
+  background:linear-gradient(135deg,var(--navy),var(--navy-light));
+  text-align:center;
+  position:relative;overflow:hidden;
+}
+.cta-section::before{
+  content:'';position:absolute;top:-150px;left:-150px;
+  width:500px;height:500px;border-radius:50%;
+  background:radial-gradient(circle,rgba(27,92,219,0.2) 0%,transparent 70%);
+}
+.cta-section::after{
+  content:'';position:absolute;bottom:-100px;right:-100px;
+  width:400px;height:400px;border-radius:50%;
+  background:radial-gradient(circle,rgba(10,181,126,0.12) 0%,transparent 70%);
+}
+.cta-inner{position:relative;z-index:1}
+.cta-section .section-title{color:#fff}
+.cta-section .section-sub{color:rgba(255,255,255,0.65);margin-left:auto;margin-right:auto}
+.cta-section .label{color:#7aa7f8}
+.cta-btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.btn-white{background:#fff;color:var(--brand);font-weight:700;box-shadow:0 6px 24px rgba(0,0,0,0.2)}
+.btn-white:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(0,0,0,0.25)}
+.btn-outline-white{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.3)}
+.btn-outline-white:hover{background:rgba(255,255,255,0.08)}
+
+/* ── 11-SECTIONS PREVIEW ─────────────────────── */
+.sections-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);
+  gap:10px;max-width:700px;margin:0 auto;
+}
+.sec-item{
+  display:flex;align-items:center;gap:12px;
+  padding:13px 16px;background:#fff;
+  border:1px solid var(--border-mid);border-radius:var(--r-sm);
+  box-shadow:var(--shadow-sm);font-size:14px;font-weight:500;color:var(--navy);
+}
+.sec-check{
+  width:22px;height:22px;border-radius:50%;
+  background:var(--mint-soft);border:1px solid #b6e4d1;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--mint);font-size:11px;font-weight:700;flex-shrink:0;
+}
+
+/* ── PAYER STRIP ─────────────────────────────── */
+.payer-strip{
+  background:#fff;border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  padding:44px 0;
+}
+.payer-label{font-size:13px;font-weight:700;color:var(--text-3);text-align:center;
+  letter-spacing:.8px;text-transform:uppercase;margin-bottom:20px}
+.payer-pills{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.payer-pill{
+  background:var(--gray-50);border:1px solid var(--border-mid);
+  border-radius:999px;padding:8px 18px;
+  font-size:13.5px;font-weight:600;color:var(--slate);
+}
+
+/* ── FOOTER ──────────────────────────────────── */
+footer{
+  background:var(--navy);color:rgba(255,255,255,0.5);
+  padding:52px 0 40px;font-size:14px;
+}
+.footer-inner{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:48px}
+.footer-brand{color:#fff;font-size:18px;font-weight:700;margin-bottom:10px}
+.footer-brand span{color:rgba(255,255,255,0.4)}
+.footer-tag{font-size:13px;color:rgba(255,255,255,0.38);line-height:1.6}
+.footer-heading{font-size:13px;font-weight:700;color:rgba(255,255,255,0.7);
+  text-transform:uppercase;letter-spacing:.8px;margin-bottom:16px}
+.footer-links{display:flex;flex-direction:column;gap:10px}
+.footer-link{color:rgba(255,255,255,0.45);font-size:14px;transition:color .2s}
+.footer-link:hover{color:rgba(255,255,255,0.8)}
+.footer-bottom{
+  margin-top:44px;padding-top:24px;
+  border-top:1px solid rgba(255,255,255,0.08);
+  text-align:center;font-size:12.5px;color:rgba(255,255,255,0.3);
+}
+
+/* ── ANIMATIONS ──────────────────────────────── */
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(24px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.hero-left{animation:fadeUp .7s ease both}
+.hero-right{animation:fadeUp .7s ease .15s both}
+
+/* ── RESPONSIVE ──────────────────────────────── */
+@media(max-width:1024px){
+  .what-grid{grid-template-columns:repeat(2,1fr)}
+  .features-grid{grid-template-columns:repeat(2,1fr)}
+  .footer-inner{grid-template-columns:1fr 1fr}
+}
+@media(max-width:860px){
+  .hero-inner{grid-template-columns:1fr}
+  .hero-right{display:none}
+  .steps-grid{grid-template-columns:1fr;gap:16px}
+  .steps-grid::before{display:none}
+  .test-grid{grid-template-columns:1fr}
+  .pricing-grid{grid-template-columns:1fr}
+  .sections-grid{grid-template-columns:1fr}
+  .founder-card{grid-template-columns:1fr;text-align:center}
+  .founder-card blockquote{border-left:none;border-top:3px solid var(--brand);padding:16px 0 0;text-align:center}
+}
+@media(max-width:640px){
+  .nav-links{display:none}
+  .what-grid{grid-template-columns:1fr}
+  .features-grid{grid-template-columns:1fr}
+  .proof-strip{flex-direction:column}
+  .proof-item{border-right:none;border-bottom:1px solid var(--border)}
+  .proof-item:last-child{border-bottom:none}
+  .footer-inner{grid-template-columns:1fr}
+  .hero{padding:80px 0 64px}
+  .section{padding:64px 0}
+}
 </style>
 </head>
 <body>
 
-<!-- NAV -->
+<!-- ── NAV ───────────────────────────────────── -->
 <nav>
-  <div class="nav-logo">AuraComply<span>AI</span></div>
-  <div class="nav-links">
-    <a href="#how" class="nav-link">How it works</a>
-    <a href="#features" class="nav-link">Features</a>
-    <a href="#pricing" class="nav-link">Pricing</a>
-    <a href="fhir-schema.html" class="nav-link">FHIR Schema</a>
-    <a href="login.html" class="nav-cta">Sign In →</a>
+  <div class="nav-brand">
+    <div class="nav-logo">A</div>
+    <div class="nav-name">AuraComply <span>AI</span></div>
   </div>
+  <div class="nav-links">
+    <a href="#what" class="nav-link">Features</a>
+    <a href="#how" class="nav-link">How it works</a>
+    <a href="#founder" class="nav-link">Founder</a>
+    <a href="#pricing" class="nav-link">Pricing</a>
+    <a href="#faq" class="nav-link">FAQ</a>
+  </div>
+  <a href="#pricing" class="nav-cta">Start Free Trial</a>
 </nav>
 
-<!-- HERO -->
-<section class="hero" id="home">
-  <div class="hero-inner">
-    <div class="hero-badge">
-      <div class="trust-dot"></div>
-      Built by a nurse with 5 years ABA clinical experience
-    </div>
-
-    <!-- UPDATED HERO HEADLINE -->
-    <h1>Prior Auth for ABA Therapy<br>
-      <span>in 60 Seconds</span> — across all 50 states,<br>
-      with deep payer-specific rules for<br>
-      Medicaid, UHC, Anthem, BCBS,<br>
-      Aetna, Cigna, and Molina Healthcare
-    </h1>
-
-    <!-- UPDATED SUB -->
-    <p class="hero-sub">
-      AuraComply AI generates complete 11-section PA drafts for
-      CPT 97153–97158 — embedded with payer-specific wording,
-      unit caps, modifiers, and medical-necessity language.
-    </p>
-
-    <!-- NEW LINE FROM PROMPT -->
-    <p class="hero-sub-2">
-      Supports 100+ payer-state combinations at launch.
-      New payers added monthly.
-    </p>
-
-    <div class="hero-actions">
-      <a href="login.html" class="btn-hero btn-primary">
-        Start Free Trial →
-      </a>
-      <a href="#how" class="btn-hero btn-outline">
-        See How It Works
-      </a>
-    </div>
-
-    <div class="hero-trust">
-      <div class="trust-item">
-        <div class="trust-dot"></div>HIPAA-aware design
+<!-- ── 1. HERO ───────────────────────────────── -->
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <div class="hero-badge">
+          <div class="hero-badge-dot"></div>
+          Nurse-led · HIPAA-aware · All 50 states
+        </div>
+        <h1>Nurse-led AI for ABA<br><em>prior authorizations</em></h1>
+        <p class="hero-sub">Generate and validate complete payer-aware ABA PA drafts in 60 seconds. Built for BCBAs, billing teams, and clinic owners across all 50 states.</p>
+        <div class="hero-actions">
+          <a href="#pricing" class="btn btn-primary">Start Free Trial →</a>
+          <a href="#how" class="btn btn-ghost">See How It Works</a>
+        </div>
+        <div class="proof-strip">
+          <div class="proof-item">
+            <div class="proof-num">11</div>
+            <div class="proof-label">section draft output</div>
+          </div>
+          <div class="proof-item">
+            <div class="proof-num">60s</div>
+            <div class="proof-label">end-to-end workflow</div>
+          </div>
+          <div class="proof-item">
+            <div class="proof-num">100+</div>
+            <div class="proof-label">payer-aware validation checks</div>
+          </div>
+        </div>
       </div>
-      <div class="trust-item">
-        <div class="trust-dot"></div>All 50 states
-      </div>
-      <div class="trust-item">
-        <div class="trust-dot"></div>30 days free
-      </div>
-      <div class="trust-item">
-        <div class="trust-dot"></div>No credit card needed
+      <div class="hero-right">
+        <div class="hero-card">
+          <div class="card-header">
+            <span class="card-header-title">AuraComply Draft Preview</span>
+            <span class="card-chip">✓ Ready in 60 sec</span>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <div class="field-label">State</div>
+              <div class="field-value">California</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Payer</div>
+              <div class="field-value">Anthem</div>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <div class="field-label">CPT Codes</div>
+              <div class="field-value">97153 · 97155</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Auth Type</div>
+              <div class="field-value">Initial</div>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field field-wide">
+              <div class="field-label">Sections Generated</div>
+              <div class="field-value">11 of 11 complete</div>
+            </div>
+          </div>
+          <div class="status-row">
+            <div class="status-dot"></div>
+            <div class="status-text">All compliance checks passed — ready for BCBA review</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- STATS -->
-<div class="stats">
-  <div class="stats-inner">
-    <div class="stat">
-      <div class="stat-num">60s</div>
-      <div class="stat-label">PA draft generated</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num">11</div>
-      <div class="stat-label">Sections per draft</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num">100+</div>
-      <div class="stat-label">Payer-state combinations</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num">6</div>
-      <div class="stat-label">CPT codes supported</div>
+<!-- ── 2. TRUST STRIP ─────────────────────────── -->
+<div class="trust">
+  <div class="wrap">
+    <div class="trust-inner">
+      <div class="trust-pill"><div class="trust-pill-icon">✓</div> 100+ Payer-State Combinations</div>
+      <div class="trust-pill"><div class="trust-pill-icon">✓</div> Clinician-First Design</div>
+      <div class="trust-pill"><div class="trust-pill-icon">✓</div> HIPAA-Aware Platform</div>
+      <div class="trust-pill"><div class="trust-pill-icon">✓</div> Appeal Letter Generator</div>
+      <div class="trust-pill"><div class="trust-pill-icon">✓</div> FHIR-Ready Output</div>
     </div>
   </div>
 </div>
 
-<!-- PAYER LOGOS STRIP -->
-<div class="payers">
-  <div class="payers-inner">
-    <div class="payers-title">
-      Deep payer-specific rules built in at launch
-    </div>
-    <div class="payer-grid">
+<!-- ── PAYER STRIP ────────────────────────────── -->
+<div class="payer-strip">
+  <div class="wrap">
+    <div class="payer-label">Deep payer-specific rules built in at launch</div>
+    <div class="payer-pills">
       <div class="payer-pill">Medicaid (all 50 states)</div>
       <div class="payer-pill">UnitedHealthcare</div>
       <div class="payer-pill">Anthem</div>
@@ -265,357 +655,340 @@ footer{background:#0f172a;color:#94a3b8;padding:48px 24px;text-align:center}
   </div>
 </div>
 
-<!-- HOW IT WORKS — BCBA-FIRST DESIGN -->
-<section class="section" id="how">
-  <div class="section-inner">
-    <div class="section-label">How It Works</div>
-
-    <!-- UPDATED TITLE FROM PROMPT -->
-    <div class="section-title">
-      BCBA-First Design — Three Steps to a Submission-Ready PA
-    </div>
-    <p class="section-sub">
-      No training required. No templates to fill.
-      Clinical data in — complete PA draft out.
-    </p>
-
-    <div class="steps">
-      <!-- STEP 1 — UPDATED FROM PROMPT -->
-      <div class="step">
-        <div class="step-num">1</div>
-        <h3>Enter Patient Data</h3>
-        <p>Select state, payer, and ABA CPT code (97153–97158).
-          Fill in patient diagnosis, assessment scores,
-          BCBA info, and family-training details.</p>
+<!-- ── 3. WHAT IT DOES ────────────────────────── -->
+<section class="section" id="what">
+  <div class="wrap">
+    <div class="label center">What AuraComply AI does</div>
+    <h2 class="section-title center">Turns clinical notes into<br>submission-ready PA drafts</h2>
+    <p class="section-sub center">Payer-aware intelligence, built-in validation, and real clinical knowledge — not generic AI templates.</p>
+    <div class="what-grid">
+      <div class="what-card">
+        <div class="what-icon">📋</div>
+        <h3>Complete 11-Section Drafts</h3>
+        <p>Generates full, professionally structured PA documents including medical necessity letters, SMART goals, and signature placeholders.</p>
       </div>
-
-      <!-- STEP 2 — UPDATED FROM PROMPT -->
-      <div class="step">
-        <div class="step-num">2</div>
-        <h3>AI Generates Payer-Specific Draft</h3>
-        <p>AuraComply AI generates a complete 11-section PA draft
-          in 60 seconds, embedded with Medicaid- or
-          commercial-payer-specific wording and caps.</p>
+      <div class="what-card">
+        <div class="what-icon">⚙️</div>
+        <h3>Payer-Aware Intelligence</h3>
+        <p>Adapts language, unit caps, modifiers, and justification wording to each payer's specific requirements in real time.</p>
       </div>
-
-      <!-- STEP 3 — UPDATED FROM PROMPT -->
-      <div class="step">
-        <div class="step-num">3</div>
-        <h3>BCBA Review and Approval</h3>
-        <p>BCBA reviews the draft, checks the compliance and
-          denial-risk score, and approves before download.
-          No draft can be exported without a clinician-review
-          gate and signature placeholders.</p>
+      <div class="what-card">
+        <div class="what-icon">✅</div>
+        <h3>Pre-Submission Validation</h3>
+        <p>Flags missing fields, weak clinical justification, wrong modifiers, and denial risks before you submit to the payer.</p>
+      </div>
+      <div class="what-card">
+        <div class="what-icon">⚡</div>
+        <h3>60-Second Workflow</h3>
+        <p>From patient data input to a polished, payer-ready draft in under one minute — designed for busy BCBAs and billing teams.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- FEATURES -->
-<section class="features" id="features">
-  <div class="section-inner">
-    <div class="section-label">Features</div>
-    <div class="section-title">Everything a BCBA and Billing Team Needs</div>
-    <p class="section-sub">
-      Built on real clinical knowledge — not generic AI.
-    </p>
+<!-- ── 4. FEATURES ────────────────────────────── -->
+<section class="section features-bg" id="features">
+  <div class="wrap">
+    <div class="label center">Features</div>
+    <h2 class="section-title center">Everything BCBAs and billing teams need</h2>
+    <p class="section-sub center">Built on real clinical knowledge — not generic AI.</p>
     <div class="features-grid">
-
-      <!-- FEATURE 1 — NEW: PAYER-AWARE RULE ENGINE -->
-      <div class="feature">
-        <div class="feature-icon">⚙️</div>
-        <div class="feature-tag">Core Engine</div>
+      <div class="feat">
+        <div class="feat-tag">Core Engine</div>
         <h3>Payer-Aware Rule Engine</h3>
         <ul>
-          <li>Medicaid EPSDT, state-specific unit caps,
-            and therapy-week limitations baked into every PA.</li>
-          <li>Commercial payers: Anthem, UHC, BCBS, Aetna,
-            Cigna, and Molina — rules modeled into
-            11-section drafts.</li>
-          <li>AI-powered pre-submission checks flag wrong
-            modifiers, exceeded unit caps, missing
-            documentation, and payer-style medical-necessity
-            gaps.</li>
+          <li>Medicaid EPSDT, state-specific unit caps, and therapy-week limitations baked into every PA draft.</li>
+          <li>Commercial payers — Anthem, UHC, BCBS, Aetna, Cigna, Molina — rules modeled into all 11 sections.</li>
+          <li>AI-powered pre-submission checks flag wrong modifiers, exceeded unit caps, and documentation gaps.</li>
         </ul>
       </div>
-
-      <!-- FEATURE 2 — NEW: PRE-SUBMISSION VALIDATOR -->
-      <div class="feature">
-        <div class="feature-icon">✅</div>
-        <div class="feature-tag">Compliance</div>
+      <div class="feat">
+        <div class="feat-tag">Compliance</div>
         <h3>Pre-Submission Validator</h3>
         <ul>
-          <li>Compliance score 0–100, converted into a
-            payer-specific denial-risk score for each
-            ABA service line.</li>
-          <li>Catches: missing BCBA credentials, wrong
-            unit-cap per payer, absent family-training
-            logs, and gaps in functional-status
-            justification before submission.</li>
-          <li>Every denied PA auto-translates into a
-            one-click appeal draft with payer-specific
-            language and federal parity-law citations.</li>
+          <li>Compliance score 0–100, converted into a payer-specific denial-risk rating per ABA service line.</li>
+          <li>Catches: missing BCBA credentials, wrong unit cap per payer, absent family-training logs, and functional-status justification gaps.</li>
+          <li>Every denied PA auto-surfaces a one-click appeal draft with federal parity-law citations.</li>
         </ul>
       </div>
-
-      <!-- FEATURE 3 — NEW: APPEAL LETTER GENERATOR -->
-      <div class="feature">
-        <div class="feature-icon">📝</div>
-        <div class="feature-tag">Appeals</div>
+      <div class="feat">
+        <div class="feat-tag">Appeals</div>
         <h3>Appeal Letter Generator</h3>
         <ul>
-          <li>Auto-generates appeal letters tailored to
-            the original payer's language — Aetna-style
-            vs Medicaid state-style.</li>
-          <li>Uses federal parity law and payer-specific
-            denial-reason logic to build the strongest
-            possible appeal.</li>
-          <li>Every denied PA becomes a one-click appeal
-            draft — no starting from scratch.</li>
+          <li>Auto-generates appeal letters tailored to each payer's style — Aetna vs Medicaid state-specific language.</li>
+          <li>Uses denial-reason logic and federal parity law to build the strongest possible appeal case.</li>
+          <li>Every denied PA becomes a one-click appeal draft — no starting from scratch.</li>
         </ul>
       </div>
-
-      <!-- FEATURE 4 — NEW: FHIR-READY -->
-      <div class="feature">
-        <div class="feature-icon">🔗</div>
-        <div class="feature-tag">Interoperability</div>
+      <div class="feat">
+        <div class="feat-tag">Interoperability</div>
         <h3>FHIR-Ready and ePA-Smart</h3>
         <ul>
-          <li>Designed to be FHIR-compatible for future
-            CMS-0057-style Prior Authorization APIs.</li>
-          <li>Auto-encodes clinical data, CPTs, units,
-            and payer-specific PA sections into structured
-            formats ready for ePA portals and payer APIs.</li>
-          <li>For clinics using EHRs with FHIR-based PA
-            workflows, AuraComply AI drafts plug directly
-            into standard prior-authorization bundles.</li>
+          <li>Designed for CMS-0057-style Prior Authorization APIs coming in 2027.</li>
+          <li>Auto-encodes CPTs, units, and payer-specific PA sections into structured formats for ePA portals.</li>
+          <li>AuraComply AI drafts plug directly into standard prior-authorization FHIR bundles.</li>
         </ul>
       </div>
-
-      <!-- FEATURE 5 — EXISTING: CLINICALLY AWARE -->
-      <div class="feature">
-        <div class="feature-icon">🧠</div>
-        <h3>Clinically Aware AI</h3>
-        <p>Knows why Aetna rejects CPT 97155. Knows Medicaid
-          EPSDT requirements. Built on 5 years of ABA clinical
-          expertise — not generic AI templates.</p>
+      <div class="feat">
+        <div class="feat-tag">Clinical AI</div>
+        <h3>Clinically Aware Intelligence</h3>
+        <p>Knows why Aetna rejects CPT 97155. Knows Medicaid EPSDT requirements. Built on deep ABA clinical expertise — not off-the-shelf AI templates. Every payer rule update deepens the clinical moat.</p>
       </div>
-
-      <!-- FEATURE 6 — EXISTING: HIPAA -->
-      <div class="feature">
-        <div class="feature-icon">🔒</div>
+      <div class="feat">
+        <div class="feat-tag">Security</div>
         <h3>HIPAA-Aware Design</h3>
-        <p>No PHI stored. No patient data logged.
-          Clinician review gate required before any draft
-          can be downloaded. BCBA signature placeholders
-          on every export.</p>
+        <p>No PHI stored. No patient data logged. Clinician review gate required before any draft can be downloaded. BCBA signature placeholders on every export. Built for trust from day one.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 5. HOW IT WORKS ────────────────────────── -->
+<section class="section" id="how">
+  <div class="wrap">
+    <div class="label center">How it works</div>
+    <h2 class="section-title center">BCBA-first design — three steps to a submission-ready PA</h2>
+    <p class="section-sub center">No training required. No templates to fill. Clinical data in — complete payer-specific draft out.</p>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <h3>Enter Patient Data</h3>
+        <p>Select state, payer, and ABA CPT code (97153–97158). Fill in patient diagnosis, assessment scores, BCBA credentials, and family-training details.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <h3>AI Generates Payer-Specific Draft</h3>
+        <p>AuraComply AI creates a complete 11-section PA draft in 60 seconds — embedded with the correct payer wording, unit caps, and modifiers for that state and insurer.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <h3>BCBA Review and Approval</h3>
+        <p>BCBA reviews the draft, checks the compliance and denial-risk score, then approves before download. No draft can be exported without the clinician-review gate and signature placeholders.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 11-SECTION PREVIEW ─────────────────────── -->
+<section class="section-sm" style="background:var(--gray-50)">
+  <div class="wrap center">
+    <div class="label">What you get</div>
+    <h2 class="section-title">Complete 11-section PA draft</h2>
+    <p class="section-sub" style="margin-left:auto;margin-right:auto">Every section a payer needs — payer-specific wording, nothing missing, nothing invented.</p>
+    <div class="sections-grid">
+      <div class="sec-item"><div class="sec-check">✓</div>Section 1 — PA Header with payer, state, and auth type</div>
+      <div class="sec-item"><div class="sec-check">✓</div>Section 2 — Patient metadata block</div>
+      <div class="sec-item"><div class="sec-check">✓</div>Section 3 — CPT service data and payer unit caps</div>
+      <div class="sec-item"><div class="sec-check">✓</div>Section 4 — BCBA credentialing block</div>
+      <div class="sec-item"><div class="sec-check">✓</div>Section 5 — Clinical documentation and SMART goals</div>
+      <div class="sec-item"><div class="sec-check">✓</div>Section 6 — Setting, modality, and telehealth flags</div>
+      <div class="sec-item"><div class="sec-check">✓</div>Section 7 — Parent and caregiver involvement (97156)</div>
+      <div class="sec-item"><div class="sec-check">✓</div>Section 8 — Authorization flags and MUE compliance</div>
+      <div class="sec-item"><div class="sec-check">✓</div>Section 9 — Medical necessity letter (LMN format)</div>
+      <div class="sec-item"><div class="sec-check">✓</div>Section 10 — Pre-submission checklist (5 checkboxes)</div>
+      <div class="sec-item"><div class="sec-check">✓</div>Section 11 — AuraComply AI compliance alignment</div>
+      <div class="sec-item"><div class="sec-check">✓</div>BCBA and physician signature placeholders</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 6. ABOUT THE FOUNDER ──────────────────── -->
+<section class="section" id="founder">
+  <div class="wrap center">
+    <div class="label">About the founder</div>
+    <h2 class="section-title">Built by a nurse, not a tech company</h2>
+    <p class="section-sub" style="margin-left:auto;margin-right:auto">The clinical expertise behind every PA draft.</p>
+    <div class="founder-card">
+      <div class="founder-avatar">N</div>
+      <div class="founder-text">
+        <blockquote>"I watched BCBAs spend 3 hours per patient on prior auth forms that still got denied. So I built the tool they actually needed."</blockquote>
+        <p>AuraComply AI was founded by a nurse with 5 years of clinical hospital experience and a Bachelor of Science in Nursing. The platform was built to reduce administrative burden, improve compliance accuracy, and help ABA clinics spend less time on paperwork and more time on patient care.</p>
+        <p style="margin-top:12px">Unlike generic AI tools, AuraComply is built on real clinical knowledge — the kind that knows why Aetna rejects a CPT 97155 claim, and exactly how to fix it.</p>
+        <div class="founder-badge">✓ BSN · 5 Years Clinical Experience · Nurse-led AI</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 7. TESTIMONIALS ────────────────────────── -->
+<section class="section test-bg" id="testimonials">
+  <div class="wrap">
+    <div class="label center">Real results</div>
+    <h2 class="section-title center">What ABA teams are saying</h2>
+    <p class="section-sub center" style="margin-left:auto;margin-right:auto">From BCBAs and billing teams using AuraComply AI in their practices.</p>
+    <div class="test-grid">
+      <div class="test-card">
+        <div class="test-stars">★★★★★</div>
+        <p class="test-quote">"Cut my prior auth time from hours to minutes. The payer-specific logic is outstanding — it actually knows our payer's requirements."</p>
+        <div class="test-author">Sarah M.</div>
+        <div class="test-role">BCBA Clinical Director</div>
+      </div>
+      <div class="test-card">
+        <div class="test-stars">★★★★★</div>
+        <p class="test-quote">"Denials are noticeably down since we started using it. The validation flags and one-click appeal feature are genuine game changers for our billing team."</p>
+        <div class="test-author">Michael Torres</div>
+        <div class="test-role">Billing Manager, ABA Clinic</div>
+      </div>
+      <div class="test-card">
+        <div class="test-stars">★★★★★</div>
+        <p class="test-quote">"Finally a tool that actually understands clinical ABA workflows. This isn't generic AI — it knows the CPT codes, modifiers, and payer quirks. Highly recommended."</p>
+        <div class="test-author">Dr. Rachel Kim</div>
+        <div class="test-role">Clinic Owner and BCBA</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 8. PRICING ─────────────────────────────── -->
+<section class="section" id="pricing">
+  <div class="wrap">
+    <div class="label center">Pricing</div>
+    <h2 class="section-title center">Simple, transparent pricing</h2>
+    <p class="section-sub center">Start free. Scale as you grow. Cancel anytime.</p>
+    <div class="pricing-grid">
+
+      <!-- Starter -->
+      <div class="price-card">
+        <div class="price-tier">Starter</div>
+        <div class="price-amount">$49<span>/mo</span></div>
+        <div class="price-period">per month, billed monthly</div>
+        <div class="price-desc">For solo BCBAs</div>
+        <div class="price-trial">✓ 30 days free to start</div>
+        <div class="price-features">
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>30 PA drafts per month</span></div>
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>All 6 CPT codes (97153–97158)</span></div>
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>Core draft generation</span></div>
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>Pre-submission checklist</span></div>
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>Email support</span></div>
+        </div>
+        <a href="#" class="price-btn price-btn-ghost">Get Started</a>
+      </div>
+
+      <!-- Growth (featured) -->
+      <div class="price-card featured">
+        <div class="featured-badge">Most Popular</div>
+        <div class="price-tier">Growth</div>
+        <div class="price-amount">$99<span>/mo</span></div>
+        <div class="price-period">per month per clinic</div>
+        <div class="price-desc">For growing clinics</div>
+        <div class="price-trial">✓ First 30 days completely free</div>
+        <div class="price-features">
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>Unlimited PA drafts</span></div>
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>All 6 CPT codes (97153–97158)</span></div>
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>100+ payer-state combinations</span></div>
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>Full payer-aware rule engine</span></div>
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>Denial-risk compliance validator</span></div>
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>Appeal letter generator</span></div>
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>FHIR-ready output format</span></div>
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>Download as .txt or PDF</span></div>
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>Direct access to the founder</span></div>
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>Priority support</span></div>
+        </div>
+        <a href="#" class="price-btn price-btn-primary">Start Free Trial →</a>
+      </div>
+
+      <!-- Pro -->
+      <div class="price-card">
+        <div class="price-tier">Pro</div>
+        <div class="price-amount">$249<span>/mo</span></div>
+        <div class="price-period">per month, billed monthly</div>
+        <div class="price-desc">For multi-site teams</div>
+        <div class="price-trial">✓ Custom onboarding included</div>
+        <div class="price-features">
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>Everything in Growth</span></div>
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>Team seats and permissions</span></div>
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>Custom payer rules and overrides</span></div>
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>Dedicated onboarding session</span></div>
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>Enterprise FHIR integration</span></div>
+          <div class="price-feat"><span class="price-feat-check">✓</span><span>Monthly payer update alerts</span></div>
+        </div>
+        <a href="#" class="price-btn price-btn-ghost">Contact Sales</a>
       </div>
 
     </div>
   </div>
 </section>
 
-<!-- WHAT YOU GET — 11 SECTIONS -->
-<section class="preview" id="sections">
-  <div class="section-inner" style="text-align:center">
-    <div class="section-label">What You Get</div>
-    <div class="section-title">Complete 11-Section PA Draft</div>
-    <p class="section-sub" style="margin:0 auto 48px">
-      Every section a payer needs — payer-specific wording,
-      nothing missing, nothing invented.
-    </p>
-    <div class="sections-list">
-      <div class="section-item">
-        <span class="section-check">✓</span>
-        <span class="section-text">
-          Section 1 — PA Header with payer, state, and auth type
-        </span>
-      </div>
-      <div class="section-item">
-        <span class="section-check">✓</span>
-        <span class="section-text">
-          Section 2 — Patient metadata block
-        </span>
-      </div>
-      <div class="section-item">
-        <span class="section-check">✓</span>
-        <span class="section-text">
-          Section 3 — CPT service data and payer unit caps
-        </span>
-      </div>
-      <div class="section-item">
-        <span class="section-check">✓</span>
-        <span class="section-text">
-          Section 4 — BCBA credentialing block
-        </span>
-      </div>
-      <div class="section-item">
-        <span class="section-check">✓</span>
-        <span class="section-text">
-          Section 5 — Clinical documentation and SMART goals
-        </span>
-      </div>
-      <div class="section-item">
-        <span class="section-check">✓</span>
-        <span class="section-text">
-          Section 6 — Setting, modality, and telehealth flags
-        </span>
-      </div>
-      <div class="section-item">
-        <span class="section-check">✓</span>
-        <span class="section-text">
-          Section 7 — Parent and caregiver involvement (97156)
-        </span>
-      </div>
-      <div class="section-item">
-        <span class="section-check">✓</span>
-        <span class="section-text">
-          Section 8 — Authorization flags and MUE compliance
-        </span>
-      </div>
-      <div class="section-item">
-        <span class="section-check">✓</span>
-        <span class="section-text">
-          Section 9 — Medical necessity letter (LMN format)
-        </span>
-      </div>
-      <div class="section-item">
-        <span class="section-check">✓</span>
-        <span class="section-text">
-          Section 10 — Pre-submission checklist (5 checkboxes)
-        </span>
-      </div>
-      <div class="section-item">
-        <span class="section-check">✓</span>
-        <span class="section-text">
-          Section 11 — AuraComply AI compliance alignment
-        </span>
-      </div>
-      <div class="section-item">
-        <span class="section-check">✓</span>
-        <span class="section-text">
-          BCBA and physician signature placeholders
-        </span>
-      </div>
+<!-- ── 9. FAQ ──────────────────────────────────── -->
+<section class="section faq-bg" id="faq">
+  <div class="wrap">
+    <div class="label center">FAQ</div>
+    <h2 class="section-title center">Frequently asked questions</h2>
+    <p class="section-sub center">Everything you need to know about AuraComply AI.</p>
+    <div class="faq-list">
+      <details>
+        <summary>Is AuraComply AI HIPAA compliant?</summary>
+        <div class="faq-body">Yes. AuraComply AI is built with HIPAA security standards and BAAs in place. No PHI is stored or logged by the platform. Clinician review is required before any draft can be exported. We recommend using de-identified data during onboarding and testing.</div>
+      </details>
+      <details>
+        <summary>Does it support all payers and states?</summary>
+        <div class="faq-body">Yes. AuraComply AI supports all 50 states with deep rules for Medicaid, UnitedHealthcare, Anthem, Blue Cross Blue Shield, Aetna, Cigna, Molina Healthcare, and more — totaling 100+ payer-state combinations at launch. New payers are added monthly based on user feedback and policy changes.</div>
+      </details>
+      <details>
+        <summary>Do I still need a BCBA to review the output?</summary>
+        <div class="faq-body">Yes — and that's by design. AuraComply AI is a powerful clinical assistant, not a replacement for a qualified clinician. Every draft requires BCBA review and approval before download. No PA can be exported without passing through the clinician-review gate and BCBA signature placeholders. The final submission decision always rests with the clinician.</div>
+      </details>
+      <details>
+        <summary>Which CPT codes are supported?</summary>
+        <div class="faq-body">All six core ABA therapy CPT codes are supported: 97153 (DTT 1:1), 97154 (Group ABA), 97155 (BCBA supervision), 97156 (Family training), 97157 (Group family training), and 97158 (Group adaptive behavior). Payer-specific unit caps and modifiers for each code are built into the rule engine.</div>
+      </details>
+      <details>
+        <summary>What happens if my PA is denied?</summary>
+        <div class="faq-body">Every denied PA automatically generates a one-click appeal draft with payer-specific language, denial-reason logic, and citations to federal parity law. The Appeal Letter Generator is included in the Growth and Pro plans. You never have to start an appeal from scratch.</div>
+      </details>
+      <details>
+        <summary>How does the free trial work?</summary>
+        <div class="faq-body">Your first 30 days are completely free with no credit card required on the Growth plan. You get full access to all features including unlimited PA drafts, the payer-aware rule engine, validation, and appeal letter generator. At the end of 30 days, the plan is $99/month. Cancel anytime before then at no cost.</div>
+      </details>
     </div>
   </div>
 </section>
 
-<!-- FHIR BANNER -->
-<div class="fhir-banner">
-  <h2>FHIR-Ready and ePA-Smart</h2>
-  <p>
-    AuraComply AI outputs structured PA-ready data that maps
-    directly into FHIR-style bundles — ready for CMS-0057
-    Prior Authorization APIs coming in 2027.
-  </p>
-  <div>
-    <span class="fhir-tag">PriorAuthPackage JSON</span>
-    <span class="fhir-tag">CPT 97153–97158</span>
-    <span class="fhir-tag">ICD-10 F84.x</span>
-    <span class="fhir-tag">Payer-specific caps</span>
-    <span class="fhir-tag">Compliance score</span>
-    <span class="fhir-tag">CMS-0057 aligned</span>
-  </div>
-  <br/>
-  <a href="fhir-schema.html"
-    style="color:#93c5fd;font-size:14px;font-weight:600;
-    text-decoration:none">
-    View FHIR Schema →
-  </a>
-</div>
-
-<!-- PRICING -->
-<section class="pricing" id="pricing">
-  <div class="section-inner" style="text-align:center">
-    <div class="section-label">Pricing</div>
-    <div class="section-title">Simple and transparent</div>
-    <p class="section-sub" style="margin:0 auto 48px">
-      One price. Everything included. Cancel anytime.
-    </p>
-    <div class="pricing-card">
-      <div class="pricing-badge">BETA — Limited Spots</div>
-      <div class="pricing-price">$99</div>
-      <div class="pricing-period">per month per clinic</div>
-      <div class="pricing-trial">
-        ✅ First 30 days completely free
-      </div>
-      <div class="pricing-features">
-        <div class="pricing-feature">
-          <span>✓</span><span>Unlimited PA drafts</span>
-        </div>
-        <div class="pricing-feature">
-          <span>✓</span>
-          <span>All 6 CPT codes (97153–97158)</span>
-        </div>
-        <div class="pricing-feature">
-          <span>✓</span>
-          <span>100+ payer-state combinations</span>
-        </div>
-        <div class="pricing-feature">
-          <span>✓</span>
-          <span>Payer-aware rule engine</span>
-        </div>
-        <div class="pricing-feature">
-          <span>✓</span>
-          <span>Denial-risk compliance validator</span>
-        </div>
-        <div class="pricing-feature">
-          <span>✓</span>
-          <span>Appeal letter generator</span>
-        </div>
-        <div class="pricing-feature">
-          <span>✓</span>
-          <span>FHIR-ready output format</span>
-        </div>
-        <div class="pricing-feature">
-          <span>✓</span>
-          <span>Download as .txt or PDF</span>
-        </div>
-        <div class="pricing-feature">
-          <span>✓</span>
-          <span>Direct access to the founder</span>
-        </div>
-      </div>
-      <a href="login.html" class="btn-hero btn-primary"
-        style="width:100%;justify-content:center">
-        Start Free Trial →
-      </a>
+<!-- ── 10. FINAL CTA ──────────────────────────── -->
+<section class="cta-section">
+  <div class="wrap cta-inner">
+    <div class="label">Get started today</div>
+    <h2 class="section-title">Ready to reclaim time for patient care?</h2>
+    <p class="section-sub">Join ABA clinics using nurse-led AI to simplify prior authorizations, cut denial rates, and spend less time on paperwork.</p>
+    <div class="cta-btns">
+      <a href="#pricing" class="btn btn-white">Start Your Free Trial →</a>
+      <a href="#how" class="btn btn-outline-white">See How It Works</a>
     </div>
   </div>
 </section>
 
-<!-- CTA -->
-<section class="cta">
-  <h2>Ready to cut denial rates and reclaim your time?</h2>
-  <p>
-    Join ABA clinics already using AuraComply AI to cut prior
-    authorization time from 3 hours to 60 seconds — with
-    payer-specific rules built in.
-  </p>
-  <a href="login.html" class="btn-hero"
-    style="background:#fff;color:#1e40af;font-weight:700">
-    Get Started Free →
-  </a>
-</section>
-
-<!-- FOOTER -->
+<!-- ── FOOTER ─────────────────────────────────── -->
 <footer>
-  <div class="footer-logo">AuraComply AI</div>
-  <div class="footer-tagline">
-    AI-powered prior authorization for ABA therapy —
-    payer-aware, BCBA-first, FHIR-ready
-  </div>
-  <div class="footer-links">
-    <a href="#how" class="footer-link">How it works</a>
-    <a href="#features" class="footer-link">Features</a>
-    <a href="#pricing" class="footer-link">Pricing</a>
-    <a href="fhir-schema.html" class="footer-link">FHIR Schema</a>
-    <a href="login.html" class="footer-link">Sign In</a>
-  </div>
-  <div class="footer-copy">
-    © 2026 AuraComply AI · Built by a nurse ·
-    HIPAA-aware · Beta v1.0
+  <div class="wrap">
+    <div class="footer-inner">
+      <div>
+        <div class="footer-brand">AuraComply <span>AI</span></div>
+        <div class="footer-tag">Nurse-led AI for ABA prior authorizations.<br>Payer-aware · BCBA-first · FHIR-ready.</div>
+      </div>
+      <div>
+        <div class="footer-heading">Product</div>
+        <div class="footer-links">
+          <a href="#what" class="footer-link">What it does</a>
+          <a href="#features" class="footer-link">Features</a>
+          <a href="#how" class="footer-link">How it works</a>
+          <a href="#pricing" class="footer-link">Pricing</a>
+          <a href="#faq" class="footer-link">FAQ</a>
+        </div>
+      </div>
+      <div>
+        <div class="footer-heading">Company</div>
+        <div class="footer-links">
+          <a href="#founder" class="footer-link">About the founder</a>
+          <a href="#testimonials" class="footer-link">Testimonials</a>
+          <a href="mailto:hello@auracomplyai.com" class="footer-link">hello@auracomplyai.com</a>
+          <a href="#" class="footer-link">auracomplyai.com</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      © 2026 AuraComply AI · Built by a nurse · HIPAA-aware · Beta v1.1<br>
+      AuraComply AI Draft — Clinician review required before submission. Not for submission without BCBA and physician approval.
+    </div>
   </div>
 </footer>
 
