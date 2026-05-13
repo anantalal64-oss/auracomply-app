@@ -97,6 +97,36 @@ nav{
 </div>
 
 <script>
+/* AURACOMPLY AI — APP v2.1 — FIXED AUTH GUARD */
+const SESSION_KEYS = { AUTH: 'aura_auth', USER: 'aura_user', NAME: 'aura_name' };
+const LOCAL_KEYS = { LOGOUT: 'aura_logout', DRAFTS: 'aura_drafts' };
+const ROUTES = { LOGIN: 'login.html' };
+
+/* Auth Guard - Matches login.html */
+netlifyIdentity.on('init', function(user) {
+  if (!user) {
+    window.location.replace(ROUTES.LOGIN);
+    return;
+  }
+  const email = user.email || 'User';
+  const userEl = document.getElementById('userEmail');
+  if (userEl) userEl.textContent = email;
+});
+
+document.getElementById('signoutBtn').addEventListener('click', () => {
+  localStorage.setItem(LOCAL_KEYS.LOGOUT, '1');
+  netlifyIdentity.logout();
+});
+
+netlifyIdentity.on('logout', () => {
+  window.location.replace(ROUTES.LOGIN + '?logout=1');
+});
+
+/* Your original functions remain unchanged */
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('%cAuraComply AI v2.1 initialized successfully', 'color:#1b5cdb;font-weight:700');
+});
+</script>
 /* AURACOMPLY AI — APP v2.1 — Refined */
 const SESSION_KEYS = { AUTH: 'aura_auth', USER: 'aura_user', NAME: 'aura_name' };
 const LOCAL_KEYS = { LOGOUT: 'aura_logout', DRAFTS: 'aura_drafts' };

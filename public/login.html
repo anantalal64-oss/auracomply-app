@@ -146,6 +146,80 @@ body{
 </div>
 
 <script>
+/* AURACOMPLY AI — LOGIN v2.1 - FIXED REDIRECT */
+const SESSION_KEYS = { AUTH: 'aura_auth', USER: 'aura_user', NAME: 'aura_name' };
+const LOCAL_KEYS = { LOGOUT: 'aura_logout' };
+const ROUTES = { 
+  APP: 'app.html'     // ← FIXED: Now points to your actual main file
+};
+
+function showStatus(type, message) {
+  const el = document.getElementById('statusMsg');
+  if (el) {
+    el.className = `status-msg ${type}`;
+    el.textContent = message;
+    el.style.display = 'flex';
+  }
+}
+
+function setBtnLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = loading;
+  if (loading) {
+    btn.dataset.original = btn.innerHTML;
+    btn.innerHTML = `<div class="btn-spinner"></div> Signing in…`;
+  } else if (btn.dataset.original) {
+    btn.innerHTML = btn.dataset.original;
+  }
+}
+
+function handleGoogleLogin() { handleAuth('google'); }
+function handleEmailLogin() { handleAuth('email'); }
+
+function handleAuth(provider) {
+  if (typeof netlifyIdentity === 'undefined') {
+    showStatus('error', 'Auth widget not loaded. Please refresh the page.');
+    return;
+  }
+  setBtnLoading(provider === 'google' ? 'btnGoogle' : 'btnEmail', true);
+  netlifyIdentity.open('login');
+}
+
+window.addEventListener('load', () => {
+  if (typeof netlifyIdentity === 'undefined') {
+    showStatus('error', 'Authentication service unavailable.');
+    return;
+  }
+
+  // Handle logout flag
+  if (localStorage.getItem(LOCAL_KEYS.LOGOUT) === '1' || 
+      new URLSearchParams(location.search).get('logout') === '1') {
+    netlifyIdentity.logout();
+    localStorage.removeItem(LOCAL_KEYS.LOGOUT);
+    history.replaceState({}, '', 'login.html');
+  }
+
+  netlifyIdentity.on('init', user => {
+    if (user) window.location.replace(ROUTES.APP);
+  });
+
+  netlifyIdentity.on('login', user => {
+    const email = user.email || '';
+    const name = user.user_metadata?.full_name || email.split('@')[0];
+    sessionStorage.setItem(SESSION_KEYS.AUTH, 'true');
+    sessionStorage.setItem(SESSION_KEYS.USER, email);
+    sessionStorage.setItem(SESSION_KEYS.NAME, name);
+    window.location.replace(ROUTES.APP);
+  });
+
+  netlifyIdentity.on('error', () => {
+    setBtnLoading('btnGoogle', false);
+    setBtnLoading('btnEmail', false);
+    showStatus('error', 'Sign in failed. Please try again.');
+  });
+});
+</script>
 /* AURACOMPLY AI — LOGIN v2.1 - Refined & Robust */
 const SESSION_KEYS = { AUTH: 'aura_auth', USER: 'aura_user', NAME: 'aura_name' };
 const LOCAL_KEYS = { LOGOUT: 'aura_logout' };
