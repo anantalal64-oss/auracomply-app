@@ -130,41 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('%cAuraComply AI v2.1 initialized successfully', 'color:#1b5cdb;font-weight:700');
 });
 </script>
-/* AURACOMPLY AI — APP v2.1 — Refined */
-const SESSION_KEYS = { AUTH: 'aura_auth', USER: 'aura_user', NAME: 'aura_name' };
-const LOCAL_KEYS = { LOGOUT: 'aura_logout', DRAFTS: 'aura_drafts' };
-const ROUTES = { LOGIN: 'login.html' };
 
-/* Auth Guard */
-netlifyIdentity.on('init', function(user) {
-  if (!user) {
-    window.location.replace(ROUTES.LOGIN);
-    return;
-  }
-  const email = user.email || '';
-  document.getElementById('userEmail').textContent = email;
-});
 
-document.getElementById('signoutBtn').addEventListener('click', () => {
-  localStorage.setItem(LOCAL_KEYS.LOGOUT, '1');
-  netlifyIdentity.logout();
-});
-
-netlifyIdentity.on('logout', () => {
-  window.location.replace(ROUTES.LOGIN + '?logout=1');
-});
-
-/* Your original functions (generatePA, generateAppeal, etc.) remain exactly as provided */
-async function generatePA() { /* ... your original code ... */ }
-async function generateAppeal() { /* ... */ }
-async function lookupPayer() { /* ... */ }
-async function runValidation() { /* ... */ }
-/* copyDraft, downloadTxt, downloadPdf, toggleApprove, switchTab etc. unchanged */
-
-/* Initialize */
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('%cAuraComply AI v2.1 initialized', 'color:#1b5cdb;font-weight:700');
-});
-</script>
 </body>
 </html>
