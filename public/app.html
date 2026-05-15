@@ -2,60 +2,159 @@
 <html lang="en">
 <head>
   <script>
-  window.netlifyIdentityUrl = "https://zippy-phoenix-28c5f5.netlify.app";
-</script>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>AuraComply AI — Prior Authorization Generator</title>
-<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet"/>
-<style>
-/* ══════════════════════════════════════════════
-   AURACOMPLY AI — APP.HTML v2.1 (Refined)
-   Matches login.html + index.html design system
-   Only necessary fixes applied
-   ══════════════════════════════════════════════ */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --navy:#09152e; --navy-mid:#132040; --navy-light:#1b2d58;
-  --brand:#1b5cdb; --brand-bright:#2a6aed;
-  --mint:#0ab57e; --mint-soft:#e6f8f3;
-  --slate:#3e5080; --text:#09152e; --text-2:#3e5080; --text-3:#647299;
-  --border:rgba(28,45,88,0.10); --border-mid:rgba(28,45,88,0.18);
-  --white:#ffffff; --gray-50:#f9fafc; --gray-100:#f0f3f8;
-  --success:#0ab57e; --danger:#dc2626;
-  --shadow-sm:0 2px 8px rgba(9,21,46,0.06);
-  --shadow-md:0 6px 24px rgba(9,21,46,0.09);
-  --r-sm:10px; --r-md:16px; --r-lg:20px;
-}
-html{-webkit-font-smoothing:antialiased;height:100%}
-body{
-  font-family:'DM Sans',system-ui,sans-serif;
-  background:var(--gray-50); color:var(--text);
-  min-height:100vh; overflow-x:hidden;
-}
-nav{
-  position:sticky; top:0; z-index:100;
-  background:rgba(255,255,255,0.94); backdrop-filter:blur(18px);
-  border-bottom:1px solid var(--border);
-  padding:0 5vw; height:68px;
-  display:flex; align-items:center; justify-content:space-between;
-}
-.nav-brand{display:flex;align-items:center;gap:11px}
-.nav-logo{
-  width:38px;height:38px;border-radius:10px;
-  background:linear-gradient(135deg,var(--navy),var(--brand));
-  display:flex;align-items:center;justify-content:center;
-  color:#fff;font-size:17px;font-weight:700;
-}
-.nav-name{font-weight:700;font-size:17px;color:var(--navy)}
-.nav-name span{color:var(--brand)}
-/* Rest of your original styles preserved exactly */
-.card{background:var(--white);border:1px solid var(--border-mid);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);overflow:hidden;}
-/* ... (All your original CSS remains) ... */
-</style>
+    window.netlifyIdentityUrl = "https://zippy-phoenix-28c5f5.netlify.app";
+  </script>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AuraComply AI — Prior Authorization Generator</title>
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --navy:#09152e;--navy-mid:#132040;--navy-light:#1b2d58;
+      --brand:#1b5cdb;--brand-bright:#2a6aed;
+      --mint:#0ab57e;--mint-soft:#e6f8f3;
+      --slate:#3e5080;--text:#09152e;--text-2:#3e5080;--text-3:#647299;
+      --border:rgba(28,45,88,0.10);--border-mid:rgba(28,45,88,0.18);
+      --white:#ffffff;--gray-50:#f9fafc;--gray-100:#f0f3f8;
+      --success:#0ab57e;--danger:#dc2626;
+      --shadow-sm:0 2px 8px rgba(9,21,46,0.06);
+      --shadow-md:0 6px 24px rgba(9,21,46,0.09);
+      --r-sm:10px;--r-md:16px;--r-lg:20px;
+    }
+    html{-webkit-font-smoothing:antialiased;height:100%}
+    body{font-family:'DM Sans',system-ui,sans-serif;background:var(--gray-50);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+    /* NAV */
+    nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.94);backdrop-filter:blur(18px);border-bottom:1px solid var(--border);padding:0 5vw;height:68px;display:flex;align-items:center;justify-content:space-between;}
+    .nav-brand{display:flex;align-items:center;gap:11px}
+    .nav-logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--navy),var(--brand));display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;font-weight:700;}
+    .nav-name{font-weight:700;font-size:17px;color:var(--navy)}
+    .nav-name span{color:var(--brand)}
+    .nav-right{display:flex;align-items:center;gap:16px}
+    .nav-meta{font-size:12px;color:var(--text-3);font-weight:500}
+    .nav-user{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-2);font-weight:500}
+    .nav-user-dot{width:8px;height:8px;border-radius:50%;background:var(--mint)}
+    .nav-signout{font-size:12px;font-weight:600;color:var(--text-3);background:none;border:1px solid var(--border-mid);border-radius:7px;padding:5px 12px;cursor:pointer;transition:all .18s}
+    .nav-signout:hover{color:var(--danger);border-color:var(--danger)}
+
+    /* BANNER */
+    .banner{background:#fffbeb;border-bottom:1px solid #fde68a;padding:10px 5vw;font-size:13px;color:#92400e;display:flex;align-items:center;gap:8px;font-weight:500}
+    .banner-icon{font-size:15px}
+
+    /* LAYOUT */
+    .app-wrap{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:28px 5vw;max-width:1400px;margin:0 auto;}
+    @media(max-width:960px){.app-wrap{grid-template-columns:1fr}}
+
+    /* CARD */
+    .card{background:var(--white);border:1px solid var(--border-mid);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);overflow:hidden;}
+    .card-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);background:var(--gray-50)}
+    .card-title{font-size:15px;font-weight:700;color:var(--navy)}
+    .card-sub{font-size:12px;color:var(--text-3);margin-top:2px}
+
+    /* TABS */
+    .tabs{display:flex;gap:4px;padding:16px 24px 0;border-bottom:1px solid var(--border);background:var(--white)}
+    .tab{padding:9px 16px;font-size:13px;font-weight:600;color:var(--text-3);border-radius:8px 8px 0 0;cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all .18s}
+    .tab.active{color:var(--brand);border-bottom-color:var(--brand);background:rgba(27,92,219,0.05)}
+    .tab:hover:not(.active){color:var(--text-2)}
+    .tab-panel{display:none}.tab-panel.active{display:block}
+
+    /* FORM */
+    .form-body{padding:20px 24px;display:flex;flex-direction:column;gap:16px;max-height:calc(100vh - 200px);overflow-y:auto;}
+    .form-section{border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden}
+    .form-section-title{padding:11px 16px;background:var(--gray-50);font-size:12px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px 16px}
+    .form-grid.cols-1{grid-template-columns:1fr}
+    .form-grid.cols-3{grid-template-columns:1fr 1fr 1fr}
+    .field{display:flex;flex-direction:column;gap:5px}
+    .field.span-2{grid-column:span 2}
+    label{font-size:12px;font-weight:600;color:var(--text-2)}
+    label .req{color:var(--danger);margin-left:2px}
+    input,select,textarea{width:100%;font-family:inherit;font-size:13px;color:var(--text);background:var(--white);border:1px solid var(--border-mid);border-radius:8px;padding:9px 12px;transition:border-color .18s,box-shadow .18s;outline:none}
+    input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(27,92,219,0.1)}
+    textarea{resize:vertical;min-height:80px;line-height:1.5}
+    select{cursor:pointer}
+
+    /* CPT TABLE */
+    .cpt-table{width:100%;border-collapse:collapse;font-size:12px}
+    .cpt-table th{padding:8px 10px;text-align:left;font-weight:700;color:var(--text-3);background:var(--gray-50);border-bottom:1px solid var(--border)}
+    .cpt-table td{padding:8px 10px;border-bottom:1px solid var(--border)}
+    .cpt-table tr:last-child td{border-bottom:none}
+    .cpt-table input[type=number]{width:70px;padding:5px 8px;font-size:12px}
+    .cpt-table input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--brand)}
+    .cpt-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(27,92,219,0.08);color:var(--brand)}
+    .mue-note{padding:10px 16px;font-size:11px;color:var(--text-3);background:var(--gray-50);border-top:1px solid var(--border)}
+    .mue-counter{font-weight:700;color:var(--brand)}
+
+    /* GENERATE BTN */
+    .btn-generate{width:100%;padding:14px;font-family:inherit;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand-bright));border:none;border-radius:var(--r-md);cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px;margin:20px 24px;width:calc(100% - 48px)}
+    .btn-generate:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(27,92,219,0.3)}
+    .btn-generate:active{transform:none}
+    .btn-generate:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
+
+    /* OUTPUT PANEL */
+    .output-sticky{position:sticky;top:84px;height:calc(100vh - 110px);display:flex;flex-direction:column}
+    .output-card{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    .output-header{padding:16px 24px;border-bottom:1px solid var(--border);background:var(--gray-50);display:flex;align-items:center;justify-content:space-between}
+    .output-title{font-size:14px;font-weight:700;color:var(--navy)}
+    .output-actions{display:flex;gap:8px}
+    .btn-copy,.btn-download{font-size:12px;font-weight:600;padding:6px 14px;border-radius:7px;cursor:pointer;transition:all .18s;border:1px solid var(--border-mid);background:var(--white);color:var(--text-2);font-family:inherit}
+    .btn-copy:hover{border-color:var(--brand);color:var(--brand)}
+    .btn-download{background:var(--navy);color:#fff;border-color:var(--navy)}
+    .btn-download:hover{background:var(--navy-mid)}
+    .output-body{flex:1;overflow-y:auto;padding:24px}
+
+    /* OUTPUT STATES */
+    .state-placeholder,.state-loading,.state-error{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;text-align:center;padding:40px}
+    .state-icon{font-size:48px;opacity:.4}
+    .state-title{font-size:16px;font-weight:700;color:var(--navy)}
+    .state-sub{font-size:13px;color:var(--text-3);max-width:280px;line-height:1.6}
+    .spinner{width:40px;height:40px;border:3px solid var(--border-mid);border-top-color:var(--brand);border-radius:50%;animation:spin 0.8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .progress-steps{display:flex;flex-direction:column;gap:8px;width:100%;max-width:280px}
+    .progress-step{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text-3);padding:8px 12px;border-radius:8px;background:var(--gray-50)}
+    .progress-step.active{color:var(--brand);background:rgba(27,92,219,0.06);font-weight:600}
+    .progress-step.done{color:var(--mint)}
+    .step-dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+    /* DRAFT OUTPUT */
+    .draft-output{display:none}
+    .draft-output.visible{display:block}
+    .draft-section{margin-bottom:20px;border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden}
+    .draft-section-head{padding:10px 16px;background:var(--navy);color:#fff;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;gap:8px}
+    .draft-section-num{background:rgba(255,255,255,0.15);border-radius:5px;padding:2px 8px;font-size:11px}
+    .draft-section-body{padding:14px 16px;font-size:13px;line-height:1.7;color:var(--text)}
+    .draft-section-body p{margin-bottom:8px}
+    .draft-section-body p:last-child{margin-bottom:0}
+    .goal-item{padding:10px 12px;border-bottom:1px solid var(--border);font-size:12px}
+    .goal-item:last-child{border-bottom:none}
+    .goal-domain{font-weight:700;color:var(--brand);font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+    .flag-item{padding:8px 12px;border-left:3px solid var(--danger);background:#fef2f2;margin-bottom:6px;border-radius:0 6px 6px 0;font-size:12px;color:#991b1b}
+    .flag-item.warn{border-color:#f59e0b;background:#fffbeb;color:#92400e}
+    .flag-item.ok{border-color:var(--mint);background:var(--mint-soft);color:#065f46}
+    .lmn-item{padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;display:flex;gap:10px;align-items:flex-start}
+    .lmn-item:last-child{border-bottom:none}
+    .lmn-num{font-weight:700;color:var(--brand);font-size:12px;flex-shrink:0;width:20px}
+    .checklist-item{padding:8px 12px;display:flex;gap:10px;align-items:flex-start;border-bottom:1px solid var(--border);font-size:12px}
+    .checklist-item:last-child{border-bottom:none}
+    .check-icon{color:var(--mint);font-size:14px;flex-shrink:0}
+    .qa-item{padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px}
+    .qa-item:last-child{border-bottom:none;background:#fffbeb;border-radius:0 0 var(--r-md) var(--r-md)}
+    .qa-label{font-weight:700;color:var(--navy);margin-bottom:2px;font-size:11px}
+    .disclaimer-bar{margin-top:20px;padding:14px 16px;background:var(--navy);color:rgba(255,255,255,0.85);border-radius:var(--r-md);font-size:12px;text-align:center;line-height:1.6}
+
+    /* ERROR */
+    .error-box{padding:16px;background:#fef2f2;border:1px solid #fecaca;border-radius:var(--r-md);color:#991b1b;font-size:13px;line-height:1.6}
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar{width:6px;height:6px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:var(--border-mid);border-radius:99px}
+    ::-webkit-scrollbar-thumb:hover{background:var(--slate)}
+  </style>
 </head>
 <body>
 
@@ -83,29 +182,409 @@ nav{
 
 <!-- MAIN APP -->
 <div class="app-wrap">
-  <!-- LEFT: INPUT PANEL (your original kept) -->
+
+  <!-- LEFT: INPUT PANEL -->
   <div>
     <div class="card">
-      <!-- Tab bar + all 3 tabs (PA Generator, Appeal, Lookup) unchanged -->
-      <!-- ... Your full form content preserved exactly ... -->
+
+      <!-- TABS -->
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('pa')">PA Generator</button>
+        <button class="tab" onclick="switchTab('appeal')">Appeal Letter</button>
+        <button class="tab" onclick="switchTab('lookup')">Payer Lookup</button>
+      </div>
+
+      <!-- PA GENERATOR TAB -->
+      <div class="tab-panel active" id="tab-pa">
+        <div class="form-body">
+
+          <!-- PATIENT INFO -->
+          <div class="form-section">
+            <div class="form-section-title">Patient Information</div>
+            <div class="form-grid">
+              <div class="field">
+                <label>Patient First Name <span class="req">*</span></label>
+                <input type="text" id="patFirstName" placeholder="First name"/>
+              </div>
+              <div class="field">
+                <label>Patient Last Name <span class="req">*</span></label>
+                <input type="text" id="patLastName" placeholder="Last name"/>
+              </div>
+              <div class="field">
+                <label>Date of Birth <span class="req">*</span></label>
+                <input type="date" id="patDOB"/>
+              </div>
+              <div class="field">
+                <label>Member ID <span class="req">*</span></label>
+                <input type="text" id="memberID" placeholder="Insurance member ID"/>
+              </div>
+              <div class="field">
+                <label>State <span class="req">*</span></label>
+                <select id="patState">
+                  <option value="">Select state…</option>
+                  <option>AL</option><option>AK</option><option>AZ</option><option>AR</option>
+                  <option>CA</option><option>CO</option><option>CT</option><option>DE</option>
+                  <option>FL</option><option>GA</option><option>HI</option><option>ID</option>
+                  <option>IL</option><option>IN</option><option>IA</option><option>KS</option>
+                  <option>KY</option><option>LA</option><option>ME</option><option>MD</option>
+                  <option>MA</option><option>MI</option><option>MN</option><option>MS</option>
+                  <option>MO</option><option>MT</option><option>NE</option><option>NV</option>
+                  <option>NH</option><option>NJ</option><option>NM</option><option>NY</option>
+                  <option>NC</option><option>ND</option><option>OH</option><option>OK</option>
+                  <option>OR</option><option>PA</option><option>RI</option><option>SC</option>
+                  <option>SD</option><option>TN</option><option>TX</option><option>UT</option>
+                  <option>VT</option><option>VA</option><option>WA</option><option>WV</option>
+                  <option>WI</option><option>WY</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Insurance Payer <span class="req">*</span></label>
+                <select id="patPayer">
+                  <option value="">Select payer…</option>
+                  <option>Aetna</option>
+                  <option>BCBS</option>
+                  <option>UnitedHealthcare</option>
+                  <option>Cigna</option>
+                  <option>Molina</option>
+                  <option>Medicaid</option>
+                  <option>Humana</option>
+                  <option>Magellan</option>
+                  <option>Beacon Health</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Auth Request Type</label>
+                <select id="authType">
+                  <option value="initial">Initial Authorization</option>
+                  <option value="reauth">Re-Authorization</option>
+                  <option value="extension">Extension</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Auth Period Start</label>
+                <input type="date" id="authStart"/>
+              </div>
+            </div>
+          </div>
+
+          <!-- DIAGNOSIS -->
+          <div class="form-section">
+            <div class="form-section-title">Diagnosis & Assessment</div>
+            <div class="form-grid">
+              <div class="field">
+                <label>ICD-10 Code <span class="req">*</span></label>
+                <select id="icd10">
+                  <option value="">Select diagnosis…</option>
+                  <option value="F84.0">F84.0 — Autistic Disorder</option>
+                  <option value="F84.5">F84.5 — Asperger Syndrome</option>
+                  <option value="F84.8">F84.8 — Other PDDs</option>
+                  <option value="F84.9">F84.9 — PDD, Unspecified</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Assessment Used</label>
+                <select id="assessment">
+                  <option value="">Select…</option>
+                  <option>ADOS-2</option>
+                  <option>ADI-R</option>
+                  <option>ADOS-2 + ADI-R</option>
+                  <option>CARS-2</option>
+                  <option>Vineland-3</option>
+                  <option>Other</option>
+                  <option>Not yet completed</option>
+                </select>
+              </div>
+              <div class="field span-2">
+                <label>Clinical Summary <span class="req">*</span></label>
+                <textarea id="clinicalSummary" rows="4" placeholder="Describe the patient's current functioning level, severity, behavioral challenges, and clinical justification for ABA services…"></textarea>
+              </div>
+              <div class="field span-2">
+                <label>Safety Concerns</label>
+                <textarea id="safetyConcerns" rows="2" placeholder="List any safety concerns (SIB, aggression, elopement, PICA, etc.)…"></textarea>
+              </div>
+              <div class="field">
+                <label>Telehealth?</label>
+                <select id="telehealth">
+                  <option value="no">No — In-person only</option>
+                  <option value="yes">Yes — Telehealth included</option>
+                  <option value="hybrid">Hybrid</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Setting</label>
+                <select id="setting">
+                  <option value="clinic">Clinic</option>
+                  <option value="home">Home</option>
+                  <option value="school">School</option>
+                  <option value="community">Community</option>
+                  <option value="mixed">Mixed</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- CPT CODES -->
+          <div class="form-section">
+            <div class="form-section-title">CPT Codes & Units</div>
+            <div style="padding:14px 16px;overflow-x:auto">
+              <table class="cpt-table">
+                <thead>
+                  <tr>
+                    <th>Include</th>
+                    <th>CPT</th>
+                    <th>Description</th>
+                    <th>Units/Wk</th>
+                    <th>Hrs/Wk</th>
+                  </tr>
+                </thead>
+                <tbody id="cptTableBody">
+                  <tr>
+                    <td><input type="checkbox" id="chk97153" checked onchange="updateMUE()"/></td>
+                    <td><span class="cpt-badge">97153</span></td>
+                    <td>Individual DTT (1:1 Tech)</td>
+                    <td><input type="number" id="u97153" value="32" min="0" max="64" onchange="updateMUE()"/></td>
+                    <td id="h97153">8.0</td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox" id="chk97154" onchange="updateMUE()"/></td>
+                    <td><span class="cpt-badge">97154</span></td>
+                    <td>Group DTT (Tech)</td>
+                    <td><input type="number" id="u97154" value="0" min="0" max="32" onchange="updateMUE()"/></td>
+                    <td id="h97154">0.0</td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox" id="chk97155" checked onchange="updateMUE()"/></td>
+                    <td><span class="cpt-badge">97155</span></td>
+                    <td>BCBA Protocol Modification</td>
+                    <td><input type="number" id="u97155" value="8" min="0" max="32" onchange="updateMUE()"/></td>
+                    <td id="h97155">2.0</td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox" id="chk97156" checked onchange="updateMUE()"/></td>
+                    <td><span class="cpt-badge">97156</span></td>
+                    <td>Caregiver Training (1:1)</td>
+                    <td><input type="number" id="u97156" value="4" min="0" max="16" onchange="updateMUE()"/></td>
+                    <td id="h97156">1.0</td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox" id="chk97157" onchange="updateMUE()"/></td>
+                    <td><span class="cpt-badge">97157</span></td>
+                    <td>Multi-Family Group Training</td>
+                    <td><input type="number" id="u97157" value="0" min="0" max="8" onchange="updateMUE()"/></td>
+                    <td id="h97157">0.0</td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox" id="chk97158" onchange="updateMUE()"/></td>
+                    <td><span class="cpt-badge">97158</span></td>
+                    <td>Group Adaptive Behavior</td>
+                    <td><input type="number" id="u97158" value="0" min="0" max="32" onchange="updateMUE()"/></td>
+                    <td id="h97158">0.0</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="mue-note">
+              CMS MUE Cap (8 hr/day): Direct services total = <span class="mue-counter" id="mueTotal">10.0 hrs/wk</span>
+              <span id="mueStatus" style="margin-left:8px;font-weight:700;color:var(--mint)">✓ Compliant</span>
+            </div>
+          </div>
+
+          <!-- PROVIDER INFO -->
+          <div class="form-section">
+            <div class="form-section-title">Provider Information</div>
+            <div class="form-grid">
+              <div class="field">
+                <label>BCBA Name <span class="req">*</span></label>
+                <input type="text" id="bcbaName" placeholder="Full name"/>
+              </div>
+              <div class="field">
+                <label>BCBA NPI</label>
+                <input type="text" id="bcbaNPI" placeholder="10-digit NPI"/>
+              </div>
+              <div class="field">
+                <label>Agency/Clinic Name</label>
+                <input type="text" id="agencyName" placeholder="Practice or agency name"/>
+              </div>
+              <div class="field">
+                <label>Supervising Physician</label>
+                <input type="text" id="physName" placeholder="MD/DO name (if required)"/>
+              </div>
+              <div class="field">
+                <label>Physician NPI</label>
+                <input type="text" id="physNPI" placeholder="10-digit NPI"/>
+              </div>
+              <div class="field">
+                <label>Supervision Hours/Month</label>
+                <input type="number" id="supervisionHrs" placeholder="e.g. 8" min="0"/>
+              </div>
+            </div>
+          </div>
+
+          <!-- ADDITIONAL CLINICAL NOTES -->
+          <div class="form-section">
+            <div class="form-section-title">Additional Clinical Notes</div>
+            <div class="form-grid cols-1">
+              <div class="field">
+                <label>Previous ABA Services / Prior Auth History</label>
+                <textarea id="priorHistory" rows="2" placeholder="Describe prior ABA history, outcomes, and any previous authorizations…"></textarea>
+              </div>
+              <div class="field">
+                <label>Caregiver Training Goals</label>
+                <textarea id="caregiverGoals" rows="2" placeholder="Describe caregiver training objectives and family involvement…"></textarea>
+              </div>
+              <div class="field">
+                <label>FBA / Behavior Plan Status</label>
+                <select id="fbaStatus">
+                  <option value="">Select…</option>
+                  <option value="completed_recent">Completed within last 6 months</option>
+                  <option value="completed_older">Completed > 6 months ago</option>
+                  <option value="in_progress">In progress</option>
+                  <option value="not_started">Not yet completed</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- GENERATE BUTTON -->
+        <button class="btn-generate" id="generateBtn" onclick="generatePA()">
+          <span>✦</span> Generate Prior Authorization Draft
+        </button>
+      </div>
+
+      <!-- APPEAL TAB -->
+      <div class="tab-panel" id="tab-appeal">
+        <div class="form-body">
+          <div class="form-section">
+            <div class="form-section-title">Appeal Information</div>
+            <div class="form-grid cols-1">
+              <div class="field">
+                <label>Denial Reason / Payer Language</label>
+                <textarea id="denialReason" rows="3" placeholder="Paste the exact denial reason or payer language from the EOB/denial letter…"></textarea>
+              </div>
+              <div class="field">
+                <label>Denied CPT Codes</label>
+                <input type="text" id="deniedCodes" placeholder="e.g. 97153, 97155"/>
+              </div>
+              <div class="field">
+                <label>Patient Name</label>
+                <input type="text" id="appealPatient" placeholder="Patient full name"/>
+              </div>
+              <div class="field">
+                <label>Payer</label>
+                <select id="appealPayer">
+                  <option value="">Select payer…</option>
+                  <option>Aetna</option><option>BCBS</option><option>UnitedHealthcare</option>
+                  <option>Cigna</option><option>Molina</option><option>Medicaid</option><option>Other</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Clinical Justification for Appeal</label>
+                <textarea id="appealClinical" rows="4" placeholder="Provide clinical evidence and justification for why the services should be approved…"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="btn-generate" onclick="generateAppeal()">
+          <span>✦</span> Generate Appeal Letter
+        </button>
+      </div>
+
+      <!-- LOOKUP TAB -->
+      <div class="tab-panel" id="tab-lookup">
+        <div class="form-body">
+          <div class="form-section">
+            <div class="form-section-title">Payer Policy Lookup</div>
+            <div class="form-grid">
+              <div class="field">
+                <label>Payer</label>
+                <select id="lookupPayer">
+                  <option value="">Select payer…</option>
+                  <option>Aetna</option><option>BCBS</option><option>UnitedHealthcare</option>
+                  <option>Cigna</option><option>Molina</option><option>Medicaid</option><option>Humana</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>State</label>
+                <select id="lookupState">
+                  <option value="">Select state…</option>
+                  <option>CA</option><option>TX</option><option>FL</option><option>NY</option>
+                  <option>IL</option><option>PA</option><option>OH</option><option>GA</option>
+                  <option>NC</option><option>MI</option><option>Other</option>
+                </select>
+              </div>
+              <div class="field span-2">
+                <label>Specific Question</label>
+                <textarea id="lookupQuestion" rows="3" placeholder="e.g. What are the unit limits for 97153 under Aetna in California? Is ADOS-2 required?"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="btn-generate" onclick="generateLookup()">
+          <span>✦</span> Look Up Payer Policy
+        </button>
+      </div>
+
     </div>
   </div>
 
-  <!-- RIGHT: OUTPUT PANEL (your original preserved) -->
+  <!-- RIGHT: OUTPUT PANEL -->
   <div class="output-sticky">
-    <div class="card">
-      <!-- Placeholder, Loading, Error, Success states unchanged -->
+    <div class="card output-card">
+      <div class="output-header">
+        <div class="output-title" id="outputTitle">Draft Output</div>
+        <div class="output-actions">
+          <button class="btn-copy" id="copyBtn" onclick="copyDraft()" style="display:none">Copy</button>
+          <button class="btn-download" id="downloadBtn" onclick="downloadDraft()" style="display:none">Download</button>
+        </div>
+      </div>
+      <div class="output-body" id="outputBody">
+
+        <!-- PLACEHOLDER STATE -->
+        <div class="state-placeholder" id="statePlaceholder">
+          <div class="state-icon">📋</div>
+          <div class="state-title">Ready to Generate</div>
+          <div class="state-sub">Fill in the patient and clinical details on the left, then click Generate to create your prior authorization draft.</div>
+        </div>
+
+        <!-- LOADING STATE -->
+        <div class="state-loading" id="stateLoading" style="display:none">
+          <div class="spinner"></div>
+          <div class="state-title">Generating Draft…</div>
+          <div class="progress-steps" id="progressSteps">
+            <div class="progress-step active" id="step1"><div class="step-dot"></div>Analyzing payer rules</div>
+            <div class="progress-step" id="step2"><div class="step-dot"></div>Building clinical narrative</div>
+            <div class="progress-step" id="step3"><div class="step-dot"></div>Generating SMART goals</div>
+            <div class="progress-step" id="step4"><div class="step-dot"></div>Writing LMN bullets</div>
+            <div class="progress-step" id="step5"><div class="step-dot"></div>QA & compliance check</div>
+          </div>
+        </div>
+
+        <!-- ERROR STATE -->
+        <div id="stateError" style="display:none;padding:24px">
+          <div class="error-box" id="errorMsg"></div>
+        </div>
+
+        <!-- DRAFT OUTPUT -->
+        <div class="draft-output" id="draftOutput"></div>
+
+      </div>
     </div>
   </div>
+
 </div>
 
 <script>
-/* AURACOMPLY AI — APP v2.1 — FIXED AUTH GUARD */
-const SESSION_KEYS = { AUTH: 'aura_auth', USER: 'aura_user', NAME: 'aura_name' };
-const LOCAL_KEYS = { LOGOUT: 'aura_logout', DRAFTS: 'aura_drafts' };
-const ROUTES = { LOGIN: 'login.html' };
+/* ═══════════════════════════════════════
+   AURACOMPLY AI — APP v2.1
+   ═══════════════════════════════════════ */
 
-/* Auth Guard - Matches login.html */
+const ROUTES = { LOGIN: 'login.html' };
+let currentDraftText = '';
+
+/* ── AUTH GUARD ── */
 netlifyIdentity.on('init', function(user) {
   if (!user) {
     window.location.replace(ROUTES.LOGIN);
@@ -117,20 +596,440 @@ netlifyIdentity.on('init', function(user) {
 });
 
 document.getElementById('signoutBtn').addEventListener('click', () => {
-  localStorage.setItem(LOCAL_KEYS.LOGOUT, '1');
   netlifyIdentity.logout();
 });
-
 netlifyIdentity.on('logout', () => {
   window.location.replace(ROUTES.LOGIN + '?logout=1');
 });
 
-/* Your original functions remain unchanged */
+/* ── TABS ── */
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+/* ── MUE CALCULATOR ── */
+function updateMUE() {
+  const codes = ['97153','97154','97155','97158'];
+  let totalHrs = 0;
+  ['97153','97154','97155','97156','97157','97158'].forEach(code => {
+    const units = parseInt(document.getElementById('u' + code)?.value || 0);
+    const hrs = (units * 15 / 60).toFixed(1);
+    const hEl = document.getElementById('h' + code);
+    if (hEl) hEl.textContent = hrs;
+    if (codes.includes(code)) totalHrs += units * 15 / 60;
+  });
+  const dailyMax = 8;
+  const weeklyMax = dailyMax * 5;
+  document.getElementById('mueTotal').textContent = totalHrs.toFixed(1) + ' hrs/wk';
+  const mueEl = document.getElementById('mueStatus');
+  if (totalHrs / 5 > dailyMax) {
+    mueEl.textContent = '⚠ EXCEEDS 8hr/day cap';
+    mueEl.style.color = 'var(--danger)';
+  } else {
+    mueEl.textContent = '✓ Compliant';
+    mueEl.style.color = 'var(--mint)';
+  }
+}
+
+/* ── COLLECT FORM DATA ── */
+function collectFormData() {
+  const cptCodes = [];
+  ['97153','97154','97155','97156','97157','97158'].forEach(code => {
+    if (document.getElementById('chk' + code)?.checked) {
+      const units = parseInt(document.getElementById('u' + code)?.value || 0);
+      if (units > 0) cptCodes.push({ code, unitsPerWeek: units, hrsPerWeek: (units * 15 / 60).toFixed(1) });
+    }
+  });
+  return {
+    patientName: `${document.getElementById('patFirstName').value} ${document.getElementById('patLastName').value}`.trim(),
+    dob: document.getElementById('patDOB').value,
+    memberID: document.getElementById('memberID').value,
+    state: document.getElementById('patState').value,
+    payer: document.getElementById('patPayer').value,
+    authType: document.getElementById('authType').value,
+    authStart: document.getElementById('authStart').value,
+    icd10: document.getElementById('icd10').value,
+    assessment: document.getElementById('assessment').value,
+    clinicalSummary: document.getElementById('clinicalSummary').value,
+    safetyConcerns: document.getElementById('safetyConcerns').value,
+    telehealth: document.getElementById('telehealth').value,
+    setting: document.getElementById('setting').value,
+    cptCodes,
+    bcbaName: document.getElementById('bcbaName').value,
+    bcbaNPI: document.getElementById('bcbaNPI').value,
+    agencyName: document.getElementById('agencyName').value,
+    physName: document.getElementById('physName').value,
+    physNPI: document.getElementById('physNPI').value,
+    supervisionHrs: document.getElementById('supervisionHrs').value,
+    priorHistory: document.getElementById('priorHistory').value,
+    caregiverGoals: document.getElementById('caregiverGoals').value,
+    fbaStatus: document.getElementById('fbaStatus').value,
+  };
+}
+
+/* ── SHOW STATES ── */
+function showState(state) {
+  document.getElementById('statePlaceholder').style.display = state === 'placeholder' ? 'flex' : 'none';
+  document.getElementById('stateLoading').style.display = state === 'loading' ? 'flex' : 'none';
+  document.getElementById('stateError').style.display = state === 'error' ? 'block' : 'none';
+  document.getElementById('draftOutput').classList.toggle('visible', state === 'draft');
+  document.getElementById('copyBtn').style.display = state === 'draft' ? 'inline-block' : 'none';
+  document.getElementById('downloadBtn').style.display = state === 'draft' ? 'inline-block' : 'none';
+}
+
+/* ── PROGRESS ANIMATION ── */
+let progressTimer = null;
+function startProgress() {
+  const steps = ['step1','step2','step3','step4','step5'];
+  let i = 0;
+  steps.forEach(s => { document.getElementById(s).className = 'progress-step'; });
+  document.getElementById(steps[0]).classList.add('active');
+  progressTimer = setInterval(() => {
+    if (i > 0) document.getElementById(steps[i-1]).className = 'progress-step done';
+    i++;
+    if (i < steps.length) document.getElementById(steps[i]).classList.add('active');
+    else clearInterval(progressTimer);
+  }, 1800);
+}
+function stopProgress() {
+  if (progressTimer) clearInterval(progressTimer);
+}
+
+/* ── BUILD PROMPT ── */
+function buildPrompt(data) {
+  return `You are AuraComply AI — a nurse-led ABA prior authorization specialist. Generate a complete 11-section prior authorization draft for the following patient. Output ONLY valid JSON matching the schema exactly.
+
+PATIENT DATA:
+- Name: ${data.patientName || '[Confirm with clinic — not provided]'}
+- DOB: ${data.dob || '[Confirm with clinic — not provided]'}
+- Member ID: ${data.memberID || '[Confirm with clinic — not provided]'}
+- State: ${data.state || '[Confirm with clinic — not provided]'}
+- Payer: ${data.payer || '[Confirm with clinic — not provided]'}
+- Auth Type: ${data.authType}
+- Auth Start: ${data.authStart || '[Confirm with clinic — not provided]'}
+- ICD-10: ${data.icd10 || '[Confirm with clinic — not provided]'}
+- Assessment: ${data.assessment || '[Confirm with clinic — not provided]'}
+- Clinical Summary: ${data.clinicalSummary || '[Confirm with clinic — not provided]'}
+- Safety Concerns: ${data.safetyConcerns || 'None reported'}
+- Setting: ${data.setting}
+- Telehealth: ${data.telehealth}
+- CPT Codes: ${JSON.stringify(data.cptCodes)}
+- BCBA Name: ${data.bcbaName || '[Confirm with clinic — not provided]'}
+- BCBA NPI: ${data.bcbaNPI || '[Confirm with clinic — not provided]'}
+- Agency: ${data.agencyName || '[Confirm with clinic — not provided]'}
+- Physician: ${data.physName || '[Confirm with clinic — not provided]'}
+- Physician NPI: ${data.physNPI || '[Confirm with clinic — not provided]'}
+- Supervision Hrs/Month: ${data.supervisionHrs || '[Confirm with clinic — not provided]'}
+- Prior ABA History: ${data.priorHistory || 'Not provided'}
+- Caregiver Goals: ${data.caregiverGoals || 'Not provided'}
+- FBA Status: ${data.fbaStatus || 'Not provided'}
+
+RULES:
+- Apply ALL payer-specific rules for ${data.payer} in ${data.state}
+- Aetna/BCBS: add HO modifier to 97155, flag physician co-signature required
+- UnitedHealthcare: flag if 97153 >40 units/week
+- Cigna: flag FBA status critically if not completed within 6 months
+- Molina: use GT modifier for all telehealth + embed EPSDT language
+- Medicaid: embed EPSDT language in sections 5 and 9, require ADOS-2/ADI-R for F84.0
+- F84.9: flag for physician clarification
+- MUE: enforce 8 hr/day cap across 97153+97154+97155+97158
+- Use ONLY data provided. Missing data = "[Confirm with clinic — not provided]"
+
+OUTPUT SCHEMA (return ONLY this JSON, no markdown, no extra text):
+{
+  "meta": { "payer": "", "state": "", "generatedAt": "", "version": "2.1" },
+  "section1": { "header": "..." },
+  "section2": { "patientMetadata": "..." },
+  "section3": { "services": [], "totalHrsPerWeek": 0, "mueCompliant": true, "mueNote": "" },
+  "section4": { "providerInfo": "..." },
+  "section5": { "icd10Code": "", "clinicalSummary": "..." },
+  "section6": { "goals": [] },
+  "section7": { "caregiverPlan": "..." },
+  "section8": { "flags": [], "mueCapStatus": "" },
+  "section9": { "lmnBullets": [] },
+  "section10": { "checklist": [] },
+  "section11": { "qaBullets": [], "readableDisclaimer": "AuraComply AI Draft — Clinician review required before submission. Not for direct submission without BCBA and physician approval." }
+}
+
+Section 6: exactly 7 SMART goals covering Communication, Listener Responding, Safety, Self-Care/ADL, Social Initiation, Play, Problem Behavior Reduction.
+Section 9: exactly 8 LMN bullets: diagnosis+severity, functional impairment, safety risk, intensity justification+cite, ABA evidence, caregiver training, outcomes, provider qualifications.
+Section 10: exactly 10 checklist items.
+Section 11: exactly 6 QA bullets. Last bullet always: "This draft requires BCBA clinical review and physician co-signature before submission."`;
+}
+
+/* ── RENDER DRAFT ── */
+function renderDraft(data) {
+  const out = document.getElementById('draftOutput');
+  let html = '';
+
+  const sec = (num, title, content) => `
+    <div class="draft-section">
+      <div class="draft-section-head">
+        <span class="draft-section-num">§${num}</span> ${title}
+      </div>
+      <div class="draft-section-body">${content}</div>
+    </div>`;
+
+  // S1
+  html += sec(1, 'Authorization Header', `<p>${data.section1?.header || ''}</p>`);
+  // S2
+  html += sec(2, 'Patient Metadata', `<p>${data.section2?.patientMetadata || ''}</p>`);
+  // S3
+  const svcs = (data.section3?.services || []).map(s =>
+    `<div class="goal-item"><span class="goal-domain">${s.code}</span> ${s.hrsPerWeek} hrs/wk · ${s.unitsPerWeek} units · ${s.modifiers?.join(', ') || 'No modifiers'} · ${s.setting || ''}</div>`).join('');
+  html += sec(3, 'Services & Units',
+    `${svcs}<div style="padding:10px 12px;font-size:12px;color:var(--text-3)">Total: <b>${data.section3?.totalHrsPerWeek} hrs/wk</b> · MUE: <b style="color:${data.section3?.mueCompliant ? 'var(--mint)' : 'var(--danger)'}">${data.section3?.mueCompliant ? '✓ Compliant' : '⚠ Non-Compliant'}</b> · ${data.section3?.mueNote || ''}</div>`);
+  // S4
+  html += sec(4, 'Provider Information', `<p>${data.section4?.providerInfo || ''}</p>`);
+  // S5
+  html += sec(5, 'Clinical Justification',
+    `<div style="margin-bottom:8px"><span class="cpt-badge">${data.section5?.icd10Code || ''}</span></div><p>${data.section5?.clinicalSummary || ''}</p>`);
+  // S6
+  const goals = (data.section6?.goals || []).map((g,i) => `
+    <div class="goal-item">
+      <div class="goal-domain">${g.domain || 'Goal ' + (i+1)}</div>
+      <div>${g.goal || g.text || ''}</div>
+      ${g.criterion ? `<div style="font-size:11px;color:var(--text-3);margin-top:3px">Criterion: ${g.criterion} · ${g.timeline || ''}</div>` : ''}
+    </div>`).join('');
+  html += sec(6, 'SMART Goals (7 Domains)', goals || '<p>Goals pending generation</p>');
+  // S7
+  html += sec(7, 'Caregiver Training Plan', `<p>${data.section7?.caregiverPlan || ''}</p>`);
+  // S8
+  const flags = (data.section8?.flags || []).map(f => {
+    const cls = f.toLowerCase().includes('critical') || f.toLowerCase().includes('exceed') ? 'flag-item' : f.toLowerCase().includes('warn') || f.toLowerCase().includes('flag') ? 'flag-item warn' : 'flag-item ok';
+    return `<div class="${cls}">${f}</div>`;
+  }).join('') || '<div class="flag-item ok">No critical flags identified.</div>';
+  html += sec(8, 'Compliance Flags & MUE Status',
+    `${flags}<div style="padding:10px 12px;font-size:12px;color:var(--text-3)">${data.section8?.mueCapStatus || ''}</div>`);
+  // S9
+  const lmn = (data.section9?.lmnBullets || []).map((b,i) =>
+    `<div class="lmn-item"><span class="lmn-num">${i+1}</span><span>${b}</span></div>`).join('');
+  html += sec(9, 'Letter of Medical Necessity', lmn);
+  // S10
+  const chk = (data.section10?.checklist || []).map(c =>
+    `<div class="checklist-item"><span class="check-icon">☑</span><span>${c}</span></div>`).join('');
+  html += sec(10, 'Submission Checklist', chk);
+  // S11
+  const qa = (data.section11?.qaBullets || []).map((q,i) => `
+    <div class="qa-item">
+      <div class="qa-label">QA-${i+1}</div>
+      <div>${q}</div>
+    </div>`).join('');
+  html += sec(11, 'QA & Quality Control', qa);
+
+  // DISCLAIMER
+  html += `<div class="disclaimer-bar">🔒 ${data.section11?.readableDisclaimer || 'AuraComply AI Draft — Clinician review required before submission. Not for direct submission without BCBA and physician approval.'}</div>`;
+
+  out.innerHTML = html;
+
+  // Build plain text for copy/download
+  currentDraftText = buildPlainText(data);
+}
+
+function buildPlainText(data) {
+  let txt = `AURACOMPLY AI — PRIOR AUTHORIZATION DRAFT\n`;
+  txt += `Generated: ${new Date().toLocaleString()}\n`;
+  txt += `Payer: ${data.meta?.payer} | State: ${data.meta?.state}\n\n`;
+  txt += `SECTION 1: ${data.section1?.header}\n\n`;
+  txt += `SECTION 2: ${data.section2?.patientMetadata}\n\n`;
+  txt += `SECTION 3 SERVICES:\n`;
+  (data.section3?.services || []).forEach(s => txt += `  ${s.code}: ${s.unitsPerWeek} units/wk (${s.hrsPerWeek} hrs/wk)\n`);
+  txt += `Total: ${data.section3?.totalHrsPerWeek} hrs/wk\n\n`;
+  txt += `SECTION 4: ${data.section4?.providerInfo}\n\n`;
+  txt += `SECTION 5 [${data.section5?.icd10Code}]:\n${data.section5?.clinicalSummary}\n\n`;
+  txt += `SECTION 6 - SMART GOALS:\n`;
+  (data.section6?.goals || []).forEach((g,i) => txt += `${i+1}. [${g.domain}] ${g.goal || g.text}\n`);
+  txt += `\nSECTION 7 CAREGIVER PLAN:\n${data.section7?.caregiverPlan}\n\n`;
+  txt += `SECTION 8 FLAGS:\n`;
+  (data.section8?.flags || []).forEach(f => txt += `  • ${f}\n`);
+  txt += `\nSECTION 9 - LETTER OF MEDICAL NECESSITY:\n`;
+  (data.section9?.lmnBullets || []).forEach((b,i) => txt += `${i+1}. ${b}\n`);
+  txt += `\nSECTION 10 - CHECKLIST:\n`;
+  (data.section10?.checklist || []).forEach((c,i) => txt += `${i+1}. ${c}\n`);
+  txt += `\nSECTION 11 - QA:\n`;
+  (data.section11?.qaBullets || []).forEach((q,i) => txt += `QA-${i+1}: ${q}\n`);
+  txt += `\n${data.section11?.readableDisclaimer}`;
+  return txt;
+}
+
+/* ── GENERATE PA ── */
+async function generatePA() {
+  const data = collectFormData();
+  if (!data.payer || !data.state || !data.icd10 || !data.clinicalSummary || !data.bcbaName) {
+    showState('error');
+    document.getElementById('errorMsg').innerHTML = '⚠️ Please fill in all required fields: Payer, State, ICD-10 code, Clinical Summary, and BCBA Name.';
+    return;
+  }
+
+  document.getElementById('generateBtn').disabled = true;
+  showState('loading');
+  startProgress();
+  document.getElementById('outputTitle').textContent = 'Generating Draft…';
+
+  try {
+    const prompt = buildPrompt(data);
+    const response = await fetch('/.netlify/functions/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+
+    stopProgress();
+
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`API error ${response.status}: ${err}`);
+    }
+
+    const result = await response.json();
+    let parsed;
+    try {
+      const raw = result.content?.[0]?.text || result.text || '';
+      const cleaned = raw.replace(/```json|```/g, '').trim();
+      parsed = JSON.parse(cleaned);
+    } catch(e) {
+      throw new Error('Failed to parse AI response. The model returned invalid JSON. Please try again.');
+    }
+
+    showState('draft');
+    document.getElementById('outputTitle').textContent = 'Prior Authorization Draft';
+    renderDraft(parsed);
+
+  } catch(err) {
+    stopProgress();
+    showState('error');
+    document.getElementById('errorMsg').innerHTML = `<strong>Error:</strong> ${err.message}<br><br>Please check your Netlify function is deployed and the ANTHROPIC_API_KEY is set correctly.`;
+    document.getElementById('outputTitle').textContent = 'Error';
+  }
+
+  document.getElementById('generateBtn').disabled = false;
+}
+
+/* ── GENERATE APPEAL ── */
+async function generateAppeal() {
+  const denialReason = document.getElementById('denialReason').value;
+  const payer = document.getElementById('appealPayer').value;
+  const patient = document.getElementById('appealPatient').value;
+  const clinical = document.getElementById('appealClinical').value;
+  const codes = document.getElementById('deniedCodes').value;
+
+  if (!denialReason || !payer) {
+    showState('error');
+    document.getElementById('errorMsg').innerHTML = '⚠️ Please fill in the Denial Reason and Payer.';
+    return;
+  }
+
+  document.querySelectorAll('.btn-generate').forEach(b => b.disabled = true);
+  showState('loading');
+  document.getElementById('outputTitle').textContent = 'Generating Appeal Letter…';
+
+  try {
+    const prompt = `You are AuraComply AI. Write a professional, payer-specific ABA appeal letter for:
+Patient: ${patient || 'Not provided'}
+Payer: ${payer}
+Denied CPT Codes: ${codes || 'Not specified'}
+Denial Reason: ${denialReason}
+Clinical Justification: ${clinical || 'Not provided'}
+
+Write a complete, authoritative appeal letter with: opening statement citing the denial, clinical evidence rebuttal, peer-reviewed evidence citations for ABA efficacy, EPSDT rights if applicable, and a strong closing demand for reconsideration. Format as a professional letter.`;
+
+    const response = await fetch('/.netlify/functions/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+
+    if (!response.ok) throw new Error(`API error ${response.status}`);
+    const result = await response.json();
+    const text = result.content?.[0]?.text || result.text || 'No response generated.';
+
+    currentDraftText = text;
+    showState('draft');
+    document.getElementById('outputTitle').textContent = 'Appeal Letter';
+    document.getElementById('draftOutput').innerHTML = `<div style="white-space:pre-wrap;font-size:13px;line-height:1.8;color:var(--text)">${text}</div>
+    <div class="disclaimer-bar" style="margin-top:20px">🔒 AuraComply AI Draft — Clinician review required before submission.</div>`;
+
+  } catch(err) {
+    showState('error');
+    document.getElementById('errorMsg').innerHTML = `<strong>Error:</strong> ${err.message}`;
+  }
+  document.querySelectorAll('.btn-generate').forEach(b => b.disabled = false);
+}
+
+/* ── PAYER LOOKUP ── */
+async function generateLookup() {
+  const payer = document.getElementById('lookupPayer').value;
+  const state = document.getElementById('lookupState').value;
+  const question = document.getElementById('lookupQuestion').value;
+
+  if (!payer || !question) {
+    showState('error');
+    document.getElementById('errorMsg').innerHTML = '⚠️ Please select a Payer and enter your question.';
+    return;
+  }
+
+  document.querySelectorAll('.btn-generate').forEach(b => b.disabled = true);
+  showState('loading');
+  document.getElementById('outputTitle').textContent = 'Looking Up Policy…';
+
+  try {
+    const prompt = `You are AuraComply AI — an ABA billing specialist. Answer the following payer policy question with clinical authority and billing precision.
+Payer: ${payer}
+State: ${state || 'Not specified'}
+Question: ${question}
+Provide: specific policy rules, unit limits, modifier requirements, documentation requirements, and any known denial triggers. Be specific and actionable.`;
+
+    const response = await fetch('/.netlify/functions/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+
+    if (!response.ok) throw new Error(`API error ${response.status}`);
+    const result = await response.json();
+    const text = result.content?.[0]?.text || result.text || 'No response.';
+
+    currentDraftText = text;
+    showState('draft');
+    document.getElementById('outputTitle').textContent = 'Payer Policy Results';
+    document.getElementById('draftOutput').innerHTML = `<div style="white-space:pre-wrap;font-size:13px;line-height:1.8;color:var(--text)">${text}</div>`;
+
+  } catch(err) {
+    showState('error');
+    document.getElementById('errorMsg').innerHTML = `<strong>Error:</strong> ${err.message}`;
+  }
+  document.querySelectorAll('.btn-generate').forEach(b => b.disabled = false);
+}
+
+/* ── COPY & DOWNLOAD ── */
+function copyDraft() {
+  navigator.clipboard.writeText(currentDraftText).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = 'Copied!';
+    btn.style.color = 'var(--mint)';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+
+function downloadDraft() {
+  const blob = new Blob([currentDraftText], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `AuraComply_PA_Draft_${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ── INIT ── */
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('%cAuraComply AI v2.1 initialized successfully', 'color:#1b5cdb;font-weight:700');
+  updateMUE();
+  console.log('%cAuraComply AI v2.1 initialized', 'color:#1b5cdb;font-weight:700');
 });
 </script>
-
 
 </body>
 </html>
