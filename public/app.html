@@ -46,37 +46,46 @@
     .banner-icon{font-size:15px}
 
     /* LAYOUT */
-    .app-wrap{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:28px 5vw;max-width:1400px;margin:0 auto;}
+    .app-wrap{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:28px 5vw;max-width:1400px;margin:0 auto;align-items:start;}
     @media(max-width:960px){.app-wrap{grid-template-columns:1fr}}
 
-    /* CARD */
-    .card{background:var(--white);border:1px solid var(--border-mid);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);overflow:hidden;}
-    .card-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);background:var(--gray-50)}
+    /* CARD — left panel scrolls naturally, no overflow:hidden */
+    .card{background:var(--white);border:1px solid #d1d9ed;border-radius:var(--r-lg);box-shadow:var(--shadow-sm);}
+    .card-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);background:var(--gray-50);border-radius:var(--r-lg) var(--r-lg) 0 0;}
     .card-title{font-size:15px;font-weight:700;color:var(--navy)}
     .card-sub{font-size:12px;color:var(--text-3);margin-top:2px}
 
     /* TABS */
-    .tabs{display:flex;gap:4px;padding:16px 24px 0;border-bottom:1px solid var(--border);background:var(--white)}
+    .tabs{display:flex;gap:4px;padding:16px 24px 0;border-bottom:1px solid var(--border);background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;}
     .tab{padding:9px 16px;font-size:13px;font-weight:600;color:var(--text-3);border-radius:8px 8px 0 0;cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all .18s}
     .tab.active{color:var(--brand);border-bottom-color:var(--brand);background:rgba(27,92,219,0.05)}
     .tab:hover:not(.active){color:var(--text-2)}
     .tab-panel{display:none}.tab-panel.active{display:block}
 
-    /* FORM */
-    .form-body{padding:20px 24px;display:flex;flex-direction:column;gap:16px;max-height:calc(100vh - 200px);overflow-y:auto;}
-    .form-section{border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden}
-    .form-section-title{padding:11px 16px;background:var(--gray-50);font-size:12px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
-    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px 16px}
+    /* FORM — no max-height restriction, left panel scrolls with page */
+    .form-body{padding:20px 24px;display:flex;flex-direction:column;gap:16px;}
+    .form-section{border:1px solid #d1d9ed;border-radius:var(--r-md);background:var(--white);}
+    .form-section-title{padding:11px 16px;background:#f0f4fb;font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #d1d9ed;border-radius:var(--r-md) var(--r-md) 0 0;}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:16px}
     .form-grid.cols-1{grid-template-columns:1fr}
     .form-grid.cols-3{grid-template-columns:1fr 1fr 1fr}
-    .field{display:flex;flex-direction:column;gap:5px}
+    .field{display:flex;flex-direction:column;gap:6px}
     .field.span-2{grid-column:span 2}
     label{font-size:12px;font-weight:600;color:var(--text-2)}
     label .req{color:var(--danger);margin-left:2px}
-    input,select,textarea{width:100%;font-family:inherit;font-size:13px;color:var(--text);background:var(--white);border:1px solid var(--border-mid);border-radius:8px;padding:9px 12px;transition:border-color .18s,box-shadow .18s;outline:none}
-    input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(27,92,219,0.1)}
-    textarea{resize:vertical;min-height:80px;line-height:1.5}
-    select{cursor:pointer}
+    /* FIXED: visible border + light background so inputs are clearly visible */
+    input,select,textarea{
+      width:100%;font-family:inherit;font-size:13px;color:var(--text);
+      background:#f8faff;border:1.5px solid #c2cce8;border-radius:8px;
+      padding:9px 12px;transition:border-color .18s,box-shadow .18s,background .18s;outline:none;
+    }
+    input:focus,select:focus,textarea:focus{
+      border-color:var(--brand);background:var(--white);
+      box-shadow:0 0 0 3px rgba(27,92,219,0.10);
+    }
+    input::placeholder,textarea::placeholder{color:#aab4cc}
+    textarea{resize:vertical;min-height:80px;line-height:1.6}
+    select{cursor:pointer;appearance:auto}
 
     /* CPT TABLE */
     .cpt-table{width:100%;border-collapse:collapse;font-size:12px}
@@ -90,14 +99,14 @@
     .mue-counter{font-weight:700;color:var(--brand)}
 
     /* GENERATE BTN */
-    .btn-generate{width:100%;padding:14px;font-family:inherit;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand-bright));border:none;border-radius:var(--r-md);cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px;margin:20px 24px;width:calc(100% - 48px)}
+    .btn-generate{display:flex;align-items:center;justify-content:center;gap:10px;width:calc(100% - 48px);margin:16px 24px 24px;padding:14px;font-family:inherit;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand-bright));border:none;border-radius:var(--r-md);cursor:pointer;transition:all .2s;}
     .btn-generate:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(27,92,219,0.3)}
     .btn-generate:active{transform:none}
     .btn-generate:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
 
-    /* OUTPUT PANEL */
-    .output-sticky{position:sticky;top:84px;height:calc(100vh - 110px);display:flex;flex-direction:column}
-    .output-card{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    /* OUTPUT PANEL — sticky on right, scrolls internally */
+    .output-sticky{position:sticky;top:84px;height:calc(100vh - 110px);display:flex;flex-direction:column;}
+    .output-card{flex:1;display:flex;flex-direction:column;overflow:hidden;border-radius:var(--r-lg);border:1px solid #d1d9ed;}
     .output-header{padding:16px 24px;border-bottom:1px solid var(--border);background:var(--gray-50);display:flex;align-items:center;justify-content:space-between}
     .output-title{font-size:14px;font-weight:700;color:var(--navy)}
     .output-actions{display:flex;gap:8px}
@@ -584,22 +593,47 @@
 const ROUTES = { LOGIN: 'login.html' };
 let currentDraftText = '';
 
-/* ── AUTH GUARD ── */
-netlifyIdentity.on('init', function(user) {
-  if (!user) {
-    window.location.replace(ROUTES.LOGIN);
+/* ── AUTH GUARD — safe loader ── */
+function initAuth() {
+  /* If running locally (Live Server / file://) skip auth guard */
+  const isLocal = location.hostname === 'localhost'
+    || location.hostname === '127.0.0.1'
+    || location.protocol === 'file:';
+
+  if (isLocal) {
+    const userEl = document.getElementById('userEmail');
+    if (userEl) userEl.textContent = 'local-dev@preview';
+    console.warn('%cAuraComply: running in LOCAL mode — auth bypassed', 'color:orange;font-weight:700');
     return;
   }
-  const email = user.email || 'User';
-  const userEl = document.getElementById('userEmail');
-  if (userEl) userEl.textContent = email;
-});
+
+  /* Production — netlifyIdentity must be available */
+  if (typeof netlifyIdentity === 'undefined') {
+    console.error('netlifyIdentity widget not loaded. Check CDN script tag.');
+    return;
+  }
+
+  netlifyIdentity.on('init', function(user) {
+    if (!user) {
+      window.location.replace(ROUTES.LOGIN);
+      return;
+    }
+    const email = user.email || 'User';
+    const userEl = document.getElementById('userEmail');
+    if (userEl) userEl.textContent = email;
+  });
+
+  netlifyIdentity.on('logout', () => {
+    window.location.replace(ROUTES.LOGIN + '?logout=1');
+  });
+}
 
 document.getElementById('signoutBtn').addEventListener('click', () => {
-  netlifyIdentity.logout();
-});
-netlifyIdentity.on('logout', () => {
-  window.location.replace(ROUTES.LOGIN + '?logout=1');
+  if (typeof netlifyIdentity !== 'undefined') {
+    netlifyIdentity.logout();
+  } else {
+    window.location.replace(ROUTES.LOGIN);
+  }
 });
 
 /* ── TABS ── */
@@ -1026,6 +1060,7 @@ function downloadDraft() {
 
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', () => {
+  initAuth();
   updateMUE();
   console.log('%cAuraComply AI v2.1 initialized', 'color:#1b5cdb;font-weight:700');
 });
