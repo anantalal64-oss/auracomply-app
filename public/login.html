@@ -1,89 +1,169 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script>
-  window.netlifyIdentityUrl = "https://zippy-phoenix-28c5f5.netlify.app";
-</script>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Sign In — AuraComply AI</title>
-<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet"/>
-<style>
-/* ══════════════════════════════════════
-   AURACOMPLY AI — LOGIN v2.1 (Refined)
-   Design system: matches index.html exactly
-   ══════════════════════════════════════ */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --navy:#09152e;
-  --navy-mid:#132040;
-  --navy-light:#1b2d58;
-  --brand:#1b5cdb;
-  --brand-bright:#2a6aed;
-  --mint:#0ab57e;
-  --mint-soft:#e6f8f3;
-  --slate:#3e5080;
-  --text:#09152e;
-  --text-2:#3e5080;
-  --text-3:#647299;
-  --border:rgba(28,45,88,0.10);
-  --border-mid:rgba(28,45,88,0.18);
-  --white:#ffffff;
-  --shadow-md:0 6px 24px rgba(9,21,46,0.09);
-  --r-sm:10px;
-  --r-md:16px;
-  --r-lg:24px;
-}
-html{height:100%;-webkit-font-smoothing:antialiased}
-body{
-  font-family:'DM Sans',system-ui,sans-serif;
-  height:100%;min-height:100vh;
-  background:var(--navy);
-  color:var(--text);
-  overflow:hidden;
-}
-.shell{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  min-height:100vh;
-}
-.left{
-  position:relative;
-  background:linear-gradient(155deg, var(--navy) 0%, var(--navy-mid) 45%, var(--navy-light) 100%);
-  display:flex;
-  flex-direction:column;
-  justify-content:space-between;
-  padding:48px 52px;
-  overflow:hidden;
-}
-.left::before, .left::after{
-  content:'';position:absolute;border-radius:50%;pointer-events:none;
-}
-.left::before{
-  top:-120px;right:-80px;width:480px;height:480px;
-  background:radial-gradient(circle, rgba(27,92,219,0.22) 0%, transparent 70%);
-}
-.left::after{
-  bottom:-80px;left:-60px;width:360px;height:360px;
-  background:radial-gradient(circle, rgba(10,181,126,0.14) 0%, transparent 70%);
-}
-.left-grid{
-  position:absolute;inset:0;
-  background-image:linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
-  background-size:48px 48px;
-}
-.left-brand, .left-body, .left-footer {position:relative;z-index:2;}
-/* ... (All your original styles preserved - only minor cleanups & consistency) ... */
-</style>
+  <!--
+  ══════════════════════════════════════════════════════════════════
+   AURACOMPLY AI — login.html  v3.1
+   SYNCHRONIZED WITH: app.html · generate-pa.js · validate-pa.js
+
+   SESSION CONTRACT (shared across ALL files — never change these strings):
+     sessionStorage.aura_auth  = "true"    → app.html auth guard
+     sessionStorage.aura_user  = email     → generate-pa.js audit logs
+     sessionStorage.aura_name  = name      → app.html navbar greeting
+
+   LOGOUT CONTRACT:
+     app.html signout sets localStorage.aura_logout = "1"
+     This page detects it, clears Netlify session + sessionStorage,
+     removes the flag so it never loops.
+
+   PAYER KEYS used by generate-pa.js:
+     medicaid · anthem · uhc · bcbs · aetna · cigna · molina
+  ══════════════════════════════════════════════════════════════════
+  -->
+
+  <!-- ① Must be FIRST — before any other script -->
+  <script>window.netlifyIdentityUrl = "https://zippy-phoenix-28c5f5.netlify.app";</script>
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign In — AuraComply AI</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet"/>
+
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:        #09152e;
+    --navy-mid:    #132040;
+    --navy-light:  #1b2d58;
+    --brand:       #1b5cdb;
+    --brand-hover: #2a6aed;
+    --mint:        #0ab57e;
+    --mint-soft:   #e6f8f3;
+    --text-primary:#09152e;
+    --text-2:      #3e5080;
+    --text-3:      #647299;
+    --white:       #ffffff;
+    --bg-page:     #f4f6fb;
+    --border:      rgba(28,45,88,0.10);
+    --border-mid:  rgba(28,45,88,0.18);
+    --shadow-lg:   0 16px 48px rgba(9,21,46,0.14);
+    --r-sm: 8px; --r-md: 14px; --r-lg: 22px;
+  }
+
+  html, body { height: 100%; -webkit-font-smoothing: antialiased; font-family: 'DM Sans', system-ui, sans-serif; }
+  body { background: var(--navy); color: var(--text-primary); min-height: 100vh; }
+
+  /* ── Shell ── */
+  .shell { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
+
+  /* ── Left panel ── */
+  .left {
+    position: relative;
+    background: linear-gradient(155deg, var(--navy) 0%, var(--navy-mid) 45%, var(--navy-light) 100%);
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 48px 52px; overflow: hidden;
+  }
+  .left-grid {
+    position: absolute; inset: 0; pointer-events: none;
+    background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+  .left::before, .left::after { content: ''; position: absolute; border-radius: 50%; pointer-events: none; }
+  .left::before { top:-120px; right:-80px; width:480px; height:480px; background: radial-gradient(circle, rgba(27,92,219,0.22) 0%, transparent 70%); }
+  .left::after  { bottom:-80px; left:-60px; width:360px; height:360px; background: radial-gradient(circle, rgba(10,181,126,0.14) 0%, transparent 70%); }
+  .left-brand, .left-body, .left-footer { position: relative; z-index: 2; }
+
+  .left-brand { display: flex; align-items: center; gap: 10px; }
+  .left-logo { width:36px; height:36px; background:var(--brand); border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; color:#fff; flex-shrink:0; }
+  .left-brand-name { font-size:15px; font-weight:600; color:rgba(255,255,255,0.92); }
+  .left-brand-name span { color: var(--mint); }
+
+  .left-body { display: flex; flex-direction: column; gap: 20px; }
+  .left-eyebrow { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:500; color:rgba(255,255,255,0.5); letter-spacing:0.04em; text-transform:uppercase; }
+  .left-eyebrow-dot { width:6px; height:6px; border-radius:50%; background:var(--mint); flex-shrink:0; }
+  .left-headline { font-family:'DM Serif Display',Georgia,serif; font-size:clamp(26px,3vw,38px); font-weight:400; color:#fff; line-height:1.15; }
+  .left-headline em { font-style:italic; color:var(--mint); }
+  .left-sub { font-size:14px; color:rgba(255,255,255,0.55); line-height:1.7; max-width:300px; }
+
+  .features-list { display:flex; flex-direction:column; gap:12px; margin-top:4px; }
+  .feature-item { display:flex; align-items:flex-start; gap:10px; }
+  .feature-check { width:20px; height:20px; border-radius:50%; background:rgba(10,181,126,0.15); border:1px solid rgba(10,181,126,0.35); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--mint); flex-shrink:0; margin-top:1px; }
+  .feature-text { font-size:13.5px; color:rgba(255,255,255,0.6); line-height:1.55; }
+
+  .left-footer { display:flex; gap:2rem; padding-top:24px; border-top:1px solid rgba(255,255,255,0.08); }
+  .proof-num { font-size:24px; font-weight:700; color:#fff; letter-spacing:-0.5px; }
+  .proof-lbl { font-size:11px; color:rgba(255,255,255,0.38); margin-top:2px; line-height:1.4; }
+
+  /* ── Right panel ── */
+  .right { background:var(--bg-page); display:flex; align-items:center; justify-content:center; padding:2rem 1.5rem; }
+  .form-box { width:100%; max-width:400px; background:var(--white); border-radius:var(--r-lg); padding:2.5rem 2.25rem; box-shadow:var(--shadow-lg); border:1px solid var(--border); display:flex; flex-direction:column; gap:1.25rem; }
+
+  .mobile-brand { display:none; align-items:center; gap:10px; margin-bottom:4px; }
+  .mobile-logo { width:32px; height:32px; background:var(--brand); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#fff; }
+  .mobile-name { font-size:15px; font-weight:600; color:var(--text-primary); }
+  .mobile-name span { color:var(--brand); }
+
+  .form-heading { font-family:'DM Serif Display',Georgia,serif; font-size:24px; font-weight:400; color:var(--text-primary); line-height:1.2; }
+  .form-sub { font-size:13.5px; color:var(--text-3); margin-top:-8px; line-height:1.55; }
+
+  .status-msg { display:none; align-items:flex-start; gap:8px; padding:10px 14px; border-radius:var(--r-sm); font-size:13px; line-height:1.5; }
+  .status-msg.error   { display:flex; background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; }
+  .status-msg.success { display:flex; background:var(--mint-soft); border:1px solid rgba(10,181,126,0.35); color:#065f46; }
+  .status-msg.info    { display:flex; background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; }
+
+  .btn-sso {
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    width:100%; padding:11px 18px;
+    font-family:'DM Sans',inherit; font-size:14px; font-weight:500;
+    border-radius:var(--r-md); cursor:pointer;
+    transition:background 0.15s, border-color 0.15s, transform 0.1s;
+    border:1px solid var(--border-mid); background:var(--white); color:var(--text-primary);
+  }
+  .btn-sso:hover:not(:disabled) { background:var(--bg-page); border-color:rgba(28,45,88,0.28); }
+  .btn-sso:active:not(:disabled) { transform:scale(0.99); }
+  .btn-sso:disabled { opacity:0.65; cursor:not-allowed; }
+  .btn-email { color:var(--text-2); }
+  .google-icon { width:18px; height:18px; flex-shrink:0; }
+
+  .btn-spinner { width:15px; height:15px; border:2px solid rgba(9,21,46,0.2); border-top-color:var(--brand); border-radius:50%; animation:spin 0.7s linear infinite; flex-shrink:0; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .divider { display:flex; align-items:center; gap:12px; }
+  .divider-line { flex:1; height:1px; background:var(--border); }
+  .divider-text { font-size:12px; color:var(--text-3); white-space:nowrap; padding:0 4px; }
+
+  .trust-row { display:flex; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap; }
+  .trust-badge { display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--text-3); font-weight:500; }
+
+  .back-link { text-align:center; }
+  .back-link a { font-size:13px; color:var(--brand); text-decoration:none; font-weight:500; }
+  .back-link a:hover { text-decoration:underline; }
+  .form-footer-divider { border:none; border-top:1px solid var(--border); margin:0; }
+
+  @media (max-width:768px) {
+    body { background:var(--bg-page); }
+    .shell { grid-template-columns:1fr; }
+    .left { display:none; }
+    .right { min-height:100vh; padding:1.5rem 1rem; }
+    .form-box { padding:2rem 1.5rem; border-radius:var(--r-md); }
+    .mobile-brand { display:flex; }
+  }
+  @media (max-width:400px) {
+    .form-box { padding:1.75rem 1.25rem; box-shadow:none; border-radius:var(--r-sm); }
+  }
+  </style>
 </head>
+
 <body>
 <div class="shell">
-  <!-- LEFT PANEL (unchanged structure) -->
-  <div class="left">
+
+  <div class="left" aria-hidden="true">
     <div class="left-grid"></div>
     <div class="left-brand">
       <div class="left-logo">A</div>
@@ -94,17 +174,12 @@ body{
         <div class="left-eyebrow-dot"></div>
         Nurse-led · HIPAA-aware · All 50 states
       </div>
-      <h1 class="left-headline">
-        ABA prior auths<br>
-        <em>done in 60 seconds</em>
-      </h1>
-      <p class="left-sub">
-        Generate complete, payer-specific prior authorization drafts. Built by a nurse with 5 years of ABA clinical experience.
-      </p>
+      <h1 class="left-headline">ABA prior auths<br><em>done in 60 seconds</em></h1>
+      <p class="left-sub">Generate complete, payer-specific prior authorization drafts. Built by a nurse with 5 years of ABA clinical experience.</p>
       <div class="features-list">
-        <div class="feature-item"><div class="feature-check">✓</div><div class="feature-text">11-section PA drafts — Medicaid, Anthem, UHC, Aetna & more</div></div>
-        <div class="feature-item"><div class="feature-check">✓</div><div class="feature-text">Pre-submission validator with payer-specific denial-risk scoring</div></div>
-        <div class="feature-item"><div class="feature-check">✓</div><div class="feature-text">One-click appeal letter generator for denied PAs</div></div>
+        <div class="feature-item"><div class="feature-check">&#10003;</div><div class="feature-text">11-section PA drafts — Medicaid, Anthem, UHC, Aetna &amp; more</div></div>
+        <div class="feature-item"><div class="feature-check">&#10003;</div><div class="feature-text">Pre-submission validator with payer-specific denial-risk scoring</div></div>
+        <div class="feature-item"><div class="feature-check">&#10003;</div><div class="feature-text">One-click appeal letter generator for denied PAs</div></div>
       </div>
     </div>
     <div class="left-footer">
@@ -114,179 +189,170 @@ body{
     </div>
   </div>
 
-  <!-- RIGHT PANEL -->
   <div class="right">
-    <div class="form-box">
+    <div class="form-box" role="main">
       <div class="mobile-brand">
         <div class="mobile-logo">A</div>
         <div class="mobile-name">AuraComply <span>AI</span></div>
       </div>
-      <h2 class="form-heading">Welcome back</h2>
-      <p class="form-sub">Sign in to generate prior authorizations.</p>
+      <div>
+        <h2 class="form-heading">Welcome back</h2>
+        <p class="form-sub">Sign in to generate prior authorizations.</p>
+      </div>
+      <div class="status-msg" id="statusMsg" role="alert" aria-live="polite"></div>
 
-      <div class="status-msg" id="statusMsg" role="alert"></div>
-
-      <button class="btn-sso btn-google" id="btnGoogle" onclick="handleGoogleLogin()">
-        <!-- Google SVG preserved -->
-        <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">...</svg>
+      <button class="btn-sso" id="btnGoogle" onclick="handleGoogleLogin()">
+        <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
         Continue with Google
       </button>
 
       <div class="divider">
-        <div class="divider-line"></div>
-        <div class="divider-text">or</div>
-        <div class="divider-line"></div>
+        <div class="divider-line"></div><div class="divider-text">or</div><div class="divider-line"></div>
       </div>
 
       <button class="btn-sso btn-email" id="btnEmail" onclick="handleEmailLogin()">
-        ✉️ Continue with Email
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+        </svg>
+        Continue with Email
       </button>
 
-      <div class="trust-row">...</div>
-      <div class="back-link"><a href="index.html">← Back to home</a></div>
+      <hr class="form-footer-divider"/>
+
+      <div class="trust-row">
+        <div class="trust-badge">&#128274; HIPAA-aware</div>
+        <div class="trust-badge">&#128737; SOC 2 ready</div>
+        <div class="trust-badge">&#9889; Instant access</div>
+      </div>
+      <div class="back-link"><a href="index.html">&#8592; Back to home</a></div>
     </div>
   </div>
+
 </div>
 
 <script>
-/* AURACOMPLY AI — LOGIN v2.1 - FIXED REDIRECT */
-const SESSION_KEYS = { AUTH: 'aura_auth', USER: 'aura_user', NAME: 'aura_name' };
-const LOCAL_KEYS = { LOGOUT: 'aura_logout' };
-const ROUTES = { 
-  APP: 'app.html'     // ← FIXED: Now points to your actual main file
-};
+/* ══════════════════════════════════════════════════════════════════
+   AURACOMPLY AI — login.html Auth Controller v3.1
+   Engine: Netlify Identity Widget
 
-function showStatus(type, message) {
-  const el = document.getElementById('statusMsg');
-  if (el) {
-    el.className = `status-msg ${type}`;
-    el.textContent = message;
-    el.style.display = 'flex';
-  }
-}
+   SESSION CONTRACT — identical strings used by ALL files:
+   ┌──────────────────┬──────────────┬─────────────────────────────┐
+   │ Key              │ Storage      │ Consumer                    │
+   ├──────────────────┼──────────────┼─────────────────────────────┤
+   │ aura_auth="true" │ sessionStore │ app.html → auth guard       │
+   │ aura_user=email  │ sessionStore │ generate-pa.js → audit log  │
+   │ aura_name=name   │ sessionStore │ app.html → navbar greeting  │
+   │ aura_logout="1"  │ localStorage │ app.html → sets on signout  │
+   └──────────────────┴──────────────┴─────────────────────────────┘
+══════════════════════════════════════════════════════════════════ */
 
-function setBtnLoading(btnId, loading) {
-  const btn = document.getElementById(btnId);
-  if (!btn) return;
-  btn.disabled = loading;
-  if (loading) {
-    btn.dataset.original = btn.innerHTML;
-    btn.innerHTML = `<div class="btn-spinner"></div> Signing in…`;
-  } else if (btn.dataset.original) {
-    btn.innerHTML = btn.dataset.original;
-  }
-}
+var SESSION = { AUTH: 'aura_auth', USER: 'aura_user', NAME: 'aura_name' };
+var LOCAL   = { LOGOUT: 'aura_logout' };
+var ROUTES  = { APP: 'app.html', HOME: 'index.html' };
 
-function handleGoogleLogin() { handleAuth('google'); }
-function handleEmailLogin() { handleAuth('email'); }
-
-function handleAuth(provider) {
-  if (typeof netlifyIdentity === 'undefined') {
-    showStatus('error', 'Auth widget not loaded. Please refresh the page.');
-    return;
-  }
-  setBtnLoading(provider === 'google' ? 'btnGoogle' : 'btnEmail', true);
-  netlifyIdentity.open('login');
-}
-
-window.addEventListener('load', () => {
-  if (typeof netlifyIdentity === 'undefined') {
-    showStatus('error', 'Authentication service unavailable.');
-    return;
-  }
-
-  // Handle logout flag
-  if (localStorage.getItem(LOCAL_KEYS.LOGOUT) === '1' || 
-      new URLSearchParams(location.search).get('logout') === '1') {
-    netlifyIdentity.logout();
-    localStorage.removeItem(LOCAL_KEYS.LOGOUT);
-    history.replaceState({}, '', 'login.html');
-  }
-
-  netlifyIdentity.on('init', user => {
-    if (user) window.location.replace(ROUTES.APP);
-  });
-
-  netlifyIdentity.on('login', user => {
-    const email = user.email || '';
-    const name = user.user_metadata?.full_name || email.split('@')[0];
-    sessionStorage.setItem(SESSION_KEYS.AUTH, 'true');
-    sessionStorage.setItem(SESSION_KEYS.USER, email);
-    sessionStorage.setItem(SESSION_KEYS.NAME, name);
-    window.location.replace(ROUTES.APP);
-  });
-
-  netlifyIdentity.on('error', () => {
-    setBtnLoading('btnGoogle', false);
-    setBtnLoading('btnEmail', false);
-    showStatus('error', 'Sign in failed. Please try again.');
-  });
-});
-</script>
-/* AURACOMPLY AI — LOGIN v2.1 - Refined & Robust */
-const SESSION_KEYS = { AUTH: 'aura_auth', USER: 'aura_user', NAME: 'aura_name' };
-const LOCAL_KEYS = { LOGOUT: 'aura_logout' };
-const ROUTES = { APP: 'index.html' };
-
-function showStatus(type, message) {
-  const el = document.getElementById('statusMsg');
-  el.className = `status-msg ${type}`;
-  el.textContent = message;
+/* ── UI helpers ── */
+function showStatus(type, msg) {
+  var el = document.getElementById('statusMsg');
+  if (!el) return;
+  el.className = 'status-msg ' + type;
+  el.textContent = msg;
   el.style.display = 'flex';
 }
+function hideStatus() {
+  var el = document.getElementById('statusMsg');
+  if (el) el.style.display = 'none';
+}
 
-function setBtnLoading(btnId, loading) {
-  const btn = document.getElementById(btnId);
+function setBtnLoading(id, loading) {
+  var btn = document.getElementById(id);
   if (!btn) return;
   btn.disabled = loading;
   if (loading) {
     btn.dataset.original = btn.innerHTML;
-    btn.innerHTML = `<div class="btn-spinner"></div> Signing in…`;
+    btn.innerHTML = '<div class="btn-spinner"></div> Signing in\u2026';
   } else if (btn.dataset.original) {
     btn.innerHTML = btn.dataset.original;
+    delete btn.dataset.original;
   }
 }
+function resetBtns() { setBtnLoading('btnGoogle', false); setBtnLoading('btnEmail', false); }
 
-function handleGoogleLogin() { handleAuth('google'); }
-function handleEmailLogin() { handleAuth('email'); }
+/* ── Auth handlers — both open Netlify Identity modal ── */
+function handleGoogleLogin() { openModal('btnGoogle'); }
+function handleEmailLogin()  { openModal('btnEmail'); }
 
-function handleAuth(provider) {
+function openModal(triggerId) {
+  hideStatus();
   if (typeof netlifyIdentity === 'undefined') {
-    showStatus('error', 'Auth widget not loaded. Please refresh.');
+    showStatus('error', 'Authentication service unavailable. Please refresh.');
     return;
   }
-  setBtnLoading(provider === 'google' ? 'btnGoogle' : 'btnEmail', true);
+  setBtnLoading(triggerId, true);
   netlifyIdentity.open('login');
 }
 
-window.addEventListener('load', () => {
+/* ── Netlify Identity event listeners ── */
+window.addEventListener('load', function () {
   if (typeof netlifyIdentity === 'undefined') {
-    showStatus('error', 'Authentication service unavailable. Please check connection.');
+    showStatus('error', 'Authentication service could not load. Check your connection.');
     return;
   }
 
-  // Handle logout flag
-  if (localStorage.getItem(LOCAL_KEYS.LOGOUT) === '1' || new URLSearchParams(location.search).get('logout') === '1') {
+  /* Logout flag — set by app.html signout button */
+  var params        = new URLSearchParams(location.search);
+  var hasLocalFlag  = localStorage.getItem(LOCAL.LOGOUT) === '1';
+  var hasQueryFlag  = params.get('logout') === '1';
+
+  if (hasLocalFlag || hasQueryFlag) {
     netlifyIdentity.logout();
-    localStorage.removeItem(LOCAL_KEYS.LOGOUT);
+    localStorage.removeItem(LOCAL.LOGOUT);
+    sessionStorage.removeItem(SESSION.AUTH);
+    sessionStorage.removeItem(SESSION.USER);
+    sessionStorage.removeItem(SESSION.NAME);
     history.replaceState({}, '', 'login.html');
   }
 
-  netlifyIdentity.on('init', user => { if (user) window.location.replace(ROUTES.APP); });
-  netlifyIdentity.on('login', user => {
-    const email = user.email || '';
-    const name = user.user_metadata?.full_name || email.split('@')[0];
-    sessionStorage.setItem(SESSION_KEYS.AUTH, 'true');
-    sessionStorage.setItem(SESSION_KEYS.USER, email);
-    sessionStorage.setItem(SESSION_KEYS.NAME, name);
-    window.location.replace(ROUTES.APP);
+  /* init — skip login if valid session already exists */
+  netlifyIdentity.on('init', function (user) {
+    if (user) { writeSession(user); window.location.replace(ROUTES.APP); }
   });
-  netlifyIdentity.on('error', () => {
-    setBtnLoading('btnGoogle', false);
-    setBtnLoading('btnEmail', false);
-    showStatus('error', 'Sign in failed. Please try again.');
+
+  /* login — write session keys then redirect to app.html */
+  netlifyIdentity.on('login', function (user) {
+    writeSession(user);
+    netlifyIdentity.close();
+    showStatus('success', 'Signed in! Redirecting\u2026');
+    setTimeout(function () { window.location.replace(ROUTES.APP); }, 400);
+  });
+
+  /* close — user dismissed modal */
+  netlifyIdentity.on('close', function () { resetBtns(); hideStatus(); });
+
+  /* error — network or auth failure */
+  netlifyIdentity.on('error', function (err) {
+    resetBtns();
+    var msg = (err && err.message) ? err.message : 'Sign in failed. Please try again.';
+    if (msg.toLowerCase().indexOf('failed to fetch') !== -1)
+      msg = 'Network error. Check your connection and try again.';
+    showStatus('error', msg);
   });
 });
+
+/* ── writeSession — shared data contract with app.html ── */
+function writeSession(user) {
+  var email = (user && user.email) ? user.email : '';
+  var name  = (user && user.user_metadata && user.user_metadata.full_name)
+              ? user.user_metadata.full_name
+              : email.split('@')[0];
+  sessionStorage.setItem(SESSION.AUTH, 'true');
+  sessionStorage.setItem(SESSION.USER, email);
+  sessionStorage.setItem(SESSION.NAME, name);
+}
 </script>
 </body>
 </html>

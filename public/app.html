@@ -1,16 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script>
-    window.netlifyIdentityUrl = "https://zippy-phoenix-28c5f5.netlify.app";
-  </script>
+  <!--
+  ══════════════════════════════════════════════════════════════════
+   AURACOMPLY AI — app.html  v3.1
+   SYNCHRONIZED WITH: login.html · generate-pa.js · validate-pa.js
+
+   FIX LOG (v2.1 → v3.1):
+   [1] Endpoint:    /.netlify/functions/generate  → /api/generate-pa
+   [2] Body shape:  { prompt } raw string          → { patientData, payer, state, ... }
+   [3] Response:    result.content[0].text         → { draft, structured, mueWarning, ... }
+   [4] renderDraft: wrong schema                   → matches generate-pa.js section1-11
+   [5] Auth header: missing                        → Bearer token on every fetch()
+   [6] Auth guard:  netlifyIdentity async only     → sessionStorage fast-check first
+   [7] Signout:     netlifyIdentity.logout() only  → sets localStorage.aura_logout="1"
+   [8] Payer key:   "UnitedHealthcare"             → "uhc" (matches PAYER_RULES keys)
+   [9] validate-pa: never called                   → called after every PA generation
+   [10] Appeal/Lookup: broken endpoint + no auth   → /api/generate-pa with mode flag + auth
+  ══════════════════════════════════════════════════════════════════
+  -->
+
+  <!-- ① Must be FIRST -->
+  <script>window.netlifyIdentityUrl = "https://zippy-phoenix-28c5f5.netlify.app";</script>
+
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AuraComply AI — Prior Authorization Generator</title>
+
   <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet"/>
+
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{
@@ -20,9 +41,8 @@
       --slate:#3e5080;--text:#09152e;--text-2:#3e5080;--text-3:#647299;
       --border:rgba(28,45,88,0.10);--border-mid:rgba(28,45,88,0.18);
       --white:#ffffff;--gray-50:#f9fafc;--gray-100:#f0f3f8;
-      --success:#0ab57e;--danger:#dc2626;
-      --shadow-sm:0 2px 8px rgba(9,21,46,0.06);
-      --shadow-md:0 6px 24px rgba(9,21,46,0.09);
+      --success:#0ab57e;--danger:#dc2626;--warn:#f59e0b;
+      --shadow-sm:0 2px 8px rgba(9,21,46,0.06);--shadow-md:0 6px 24px rgba(9,21,46,0.09);
       --r-sm:10px;--r-md:16px;--r-lg:20px;
     }
     html{-webkit-font-smoothing:antialiased;height:100%}
@@ -43,17 +63,13 @@
 
     /* BANNER */
     .banner{background:#fffbeb;border-bottom:1px solid #fde68a;padding:10px 5vw;font-size:13px;color:#92400e;display:flex;align-items:center;gap:8px;font-weight:500}
-    .banner-icon{font-size:15px}
 
     /* LAYOUT */
     .app-wrap{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:28px 5vw;max-width:1400px;margin:0 auto;align-items:start;}
     @media(max-width:960px){.app-wrap{grid-template-columns:1fr}}
 
-    /* CARD — left panel scrolls naturally, no overflow:hidden */
+    /* CARD */
     .card{background:var(--white);border:1px solid #d1d9ed;border-radius:var(--r-lg);box-shadow:var(--shadow-sm);}
-    .card-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);background:var(--gray-50);border-radius:var(--r-lg) var(--r-lg) 0 0;}
-    .card-title{font-size:15px;font-weight:700;color:var(--navy)}
-    .card-sub{font-size:12px;color:var(--text-3);margin-top:2px}
 
     /* TABS */
     .tabs{display:flex;gap:4px;padding:16px 24px 0;border-bottom:1px solid var(--border);background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;}
@@ -62,7 +78,7 @@
     .tab:hover:not(.active){color:var(--text-2)}
     .tab-panel{display:none}.tab-panel.active{display:block}
 
-    /* FORM — no max-height restriction, left panel scrolls with page */
+    /* FORM */
     .form-body{padding:20px 24px;display:flex;flex-direction:column;gap:16px;}
     .form-section{border:1px solid #d1d9ed;border-radius:var(--r-md);background:var(--white);}
     .form-section-title{padding:11px 16px;background:#f0f4fb;font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #d1d9ed;border-radius:var(--r-md) var(--r-md) 0 0;}
@@ -73,16 +89,8 @@
     .field.span-2{grid-column:span 2}
     label{font-size:12px;font-weight:600;color:var(--text-2)}
     label .req{color:var(--danger);margin-left:2px}
-    /* FIXED: visible border + light background so inputs are clearly visible */
-    input,select,textarea{
-      width:100%;font-family:inherit;font-size:13px;color:var(--text);
-      background:#f8faff;border:1.5px solid #c2cce8;border-radius:8px;
-      padding:9px 12px;transition:border-color .18s,box-shadow .18s,background .18s;outline:none;
-    }
-    input:focus,select:focus,textarea:focus{
-      border-color:var(--brand);background:var(--white);
-      box-shadow:0 0 0 3px rgba(27,92,219,0.10);
-    }
+    input,select,textarea{width:100%;font-family:inherit;font-size:13px;color:var(--text);background:#f8faff;border:1.5px solid #c2cce8;border-radius:8px;padding:9px 12px;transition:border-color .18s,box-shadow .18s,background .18s;outline:none;}
+    input:focus,select:focus,textarea:focus{border-color:var(--brand);background:var(--white);box-shadow:0 0 0 3px rgba(27,92,219,0.10);}
     input::placeholder,textarea::placeholder{color:#aab4cc}
     textarea{resize:vertical;min-height:80px;line-height:1.6}
     select{cursor:pointer;appearance:auto}
@@ -104,7 +112,7 @@
     .btn-generate:active{transform:none}
     .btn-generate:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
 
-    /* OUTPUT PANEL — sticky on right, scrolls internally */
+    /* OUTPUT — sticky right panel */
     .output-sticky{position:sticky;top:84px;height:calc(100vh - 110px);display:flex;flex-direction:column;}
     .output-card{flex:1;display:flex;flex-direction:column;overflow:hidden;border-radius:var(--r-lg);border:1px solid #d1d9ed;}
     .output-header{padding:16px 24px;border-bottom:1px solid var(--border);background:var(--gray-50);display:flex;align-items:center;justify-content:space-between}
@@ -132,28 +140,43 @@
     /* DRAFT OUTPUT */
     .draft-output{display:none}
     .draft-output.visible{display:block}
-    .draft-section{margin-bottom:20px;border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden}
+    .draft-section{margin-bottom:16px;border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden}
     .draft-section-head{padding:10px 16px;background:var(--navy);color:#fff;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;gap:8px}
     .draft-section-num{background:rgba(255,255,255,0.15);border-radius:5px;padding:2px 8px;font-size:11px}
     .draft-section-body{padding:14px 16px;font-size:13px;line-height:1.7;color:var(--text)}
-    .draft-section-body p{margin-bottom:8px}
-    .draft-section-body p:last-child{margin-bottom:0}
-    .goal-item{padding:10px 12px;border-bottom:1px solid var(--border);font-size:12px}
+    .draft-kv{display:grid;grid-template-columns:140px 1fr;gap:6px 12px;font-size:12.5px}
+    .draft-kv-key{font-weight:600;color:var(--text-3)}
+    .draft-kv-val{color:var(--text)}
+    .bullet-item{padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;display:flex;gap:10px;align-items:flex-start}
+    .bullet-item:last-child{border-bottom:none}
+    .bullet-num{font-weight:700;color:var(--brand);font-size:12px;flex-shrink:0;min-width:20px}
+    .goal-item{padding:10px 12px;border-bottom:1px solid var(--border);font-size:12.5px}
     .goal-item:last-child{border-bottom:none}
-    .goal-domain{font-weight:700;color:var(--brand);font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+    .goal-num{font-weight:700;color:var(--brand);font-size:11px;margin-bottom:3px}
+    .check-item{padding:8px 12px;display:flex;gap:10px;align-items:flex-start;border-bottom:1px solid var(--border);font-size:12.5px}
+    .check-item:last-child{border-bottom:none}
+    .check-icon{color:var(--mint);flex-shrink:0}
+
+    /* VALIDATION PANEL */
+    .val-section{margin-bottom:16px;border-radius:var(--r-md);overflow:hidden;border:1px solid var(--border)}
+    .val-head{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:700;color:#fff}
+    .val-head.low{background:#0ab57e}.val-head.medium{background:#f59e0b}.val-head.high{background:var(--danger)}
+    .val-score-pill{background:rgba(255,255,255,0.2);border-radius:20px;padding:2px 10px;font-size:12px}
+    .val-body{padding:12px 16px;display:flex;flex-direction:column;gap:6px}
+    .val-flag{padding:8px 12px;border-radius:7px;font-size:12.5px;line-height:1.5;display:flex;gap:8px;align-items:flex-start}
+    .val-flag.error  {background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+    .val-flag.warning{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+    .val-flag.ok     {background:var(--mint-soft);border:1px solid rgba(10,181,126,0.3);color:#065f46}
+    .val-loading{padding:12px 16px;font-size:12px;color:var(--text-3);font-style:italic}
+    .mue-warn{margin-bottom:16px;padding:12px 16px;border-radius:var(--r-md);background:#fffbeb;border:1px solid #fde68a;font-size:13px;color:#92400e;font-weight:500}
+
+    /* FLAGS */
     .flag-item{padding:8px 12px;border-left:3px solid var(--danger);background:#fef2f2;margin-bottom:6px;border-radius:0 6px 6px 0;font-size:12px;color:#991b1b}
-    .flag-item.warn{border-color:#f59e0b;background:#fffbeb;color:#92400e}
+    .flag-item.warn{border-color:var(--warn);background:#fffbeb;color:#92400e}
     .flag-item.ok{border-color:var(--mint);background:var(--mint-soft);color:#065f46}
-    .lmn-item{padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;display:flex;gap:10px;align-items:flex-start}
-    .lmn-item:last-child{border-bottom:none}
-    .lmn-num{font-weight:700;color:var(--brand);font-size:12px;flex-shrink:0;width:20px}
-    .checklist-item{padding:8px 12px;display:flex;gap:10px;align-items:flex-start;border-bottom:1px solid var(--border);font-size:12px}
-    .checklist-item:last-child{border-bottom:none}
-    .check-icon{color:var(--mint);font-size:14px;flex-shrink:0}
-    .qa-item{padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px}
-    .qa-item:last-child{border-bottom:none;background:#fffbeb;border-radius:0 0 var(--r-md) var(--r-md)}
-    .qa-label{font-weight:700;color:var(--navy);margin-bottom:2px;font-size:11px}
-    .disclaimer-bar{margin-top:20px;padding:14px 16px;background:var(--navy);color:rgba(255,255,255,0.85);border-radius:var(--r-md);font-size:12px;text-align:center;line-height:1.6}
+
+    /* DISCLAIMER */
+    .disclaimer-bar{margin-top:16px;padding:14px 16px;background:var(--navy);color:rgba(255,255,255,0.85);border-radius:var(--r-md);font-size:12px;text-align:center;line-height:1.6}
 
     /* ERROR */
     .error-box{padding:16px;background:#fef2f2;border:1px solid #fecaca;border-radius:var(--r-md);color:#991b1b;font-size:13px;line-height:1.6}
@@ -167,56 +190,49 @@
 </head>
 <body>
 
-<!-- TOP NAV -->
 <nav>
   <div class="nav-brand">
     <div class="nav-logo">A</div>
     <div class="nav-name">AuraComply <span>AI</span></div>
   </div>
   <div class="nav-right">
-    <div class="nav-meta">Beta v2.1 · HIPAA-aware</div>
+    <div class="nav-meta">Beta v3.1 · HIPAA-aware</div>
     <div class="nav-user">
       <div class="nav-user-dot"></div>
-      <span id="userEmail">Loading…</span>
+      <span id="userDisplay">Loading…</span>
     </div>
     <button class="nav-signout" id="signoutBtn">Sign out</button>
   </div>
 </nav>
 
-<!-- DISCLAIMER BANNER -->
 <div class="banner">
-  <span class="banner-icon">⚠️</span>
-  AI-generated drafts require licensed clinician review and BCBA approval before submission.
+  ⚠️ AI-generated drafts require licensed clinician review and BCBA approval before submission.
 </div>
 
-<!-- MAIN APP -->
 <div class="app-wrap">
 
   <!-- LEFT: INPUT PANEL -->
   <div>
     <div class="card">
-
-      <!-- TABS -->
       <div class="tabs">
-        <button class="tab active" onclick="switchTab('pa')">PA Generator</button>
-        <button class="tab" onclick="switchTab('appeal')">Appeal Letter</button>
-        <button class="tab" onclick="switchTab('lookup')">Payer Lookup</button>
+        <button class="tab active" onclick="switchTab('pa', this)">PA Generator</button>
+        <button class="tab" onclick="switchTab('appeal', this)">Appeal Letter</button>
+        <button class="tab" onclick="switchTab('lookup', this)">Payer Lookup</button>
       </div>
 
       <!-- PA GENERATOR TAB -->
       <div class="tab-panel active" id="tab-pa">
         <div class="form-body">
 
-          <!-- PATIENT INFO -->
           <div class="form-section">
             <div class="form-section-title">Patient Information</div>
             <div class="form-grid">
               <div class="field">
-                <label>Patient First Name <span class="req">*</span></label>
+                <label>First Name <span class="req">*</span></label>
                 <input type="text" id="patFirstName" placeholder="First name"/>
               </div>
               <div class="field">
-                <label>Patient Last Name <span class="req">*</span></label>
+                <label>Last Name <span class="req">*</span></label>
                 <input type="text" id="patLastName" placeholder="Last name"/>
               </div>
               <div class="field">
@@ -248,18 +264,26 @@
               </div>
               <div class="field">
                 <label>Insurance Payer <span class="req">*</span></label>
+                <!--
+                  PAYER KEY MAP → generate-pa.js PAYER_RULES:
+                  Medicaid        → medicaid
+                  Anthem          → anthem
+                  UnitedHealthcare → uhc      (was "UHC" — now matches PAYER_RULES key)
+                  BCBS            → bcbs
+                  Aetna           → aetna
+                  Cigna           → cigna
+                  Molina          → molina
+                -->
                 <select id="patPayer">
                   <option value="">Select payer…</option>
-                  <option>Aetna</option>
-                  <option>BCBS</option>
-                  <option>UnitedHealthcare</option>
-                  <option>Cigna</option>
-                  <option>Molina</option>
-                  <option>Medicaid</option>
-                  <option>Humana</option>
-                  <option>Magellan</option>
-                  <option>Beacon Health</option>
-                  <option>Other</option>
+                  <option value="medicaid">Medicaid</option>
+                  <option value="anthem">Anthem</option>
+                  <option value="uhc">UnitedHealthcare</option>
+                  <option value="bcbs">BCBS</option>
+                  <option value="aetna">Aetna</option>
+                  <option value="cigna">Cigna</option>
+                  <option value="molina">Molina</option>
+                  <option value="medicaid">Humana</option>
                 </select>
               </div>
               <div class="field">
@@ -271,15 +295,22 @@
                 </select>
               </div>
               <div class="field">
-                <label>Auth Period Start</label>
+                <label>Auth Period (weeks)</label>
+                <input type="number" id="authWeeks" value="12" min="4" max="52"/>
+              </div>
+              <div class="field">
+                <label>Auth Start Date</label>
                 <input type="date" id="authStart"/>
+              </div>
+              <div class="field">
+                <label>Prior Auth Number</label>
+                <input type="text" id="priorAuthNum" placeholder="If renewal/extension"/>
               </div>
             </div>
           </div>
 
-          <!-- DIAGNOSIS -->
           <div class="form-section">
-            <div class="form-section-title">Diagnosis & Assessment</div>
+            <div class="form-section-title">Diagnosis &amp; Assessment</div>
             <div class="form-grid">
               <div class="field">
                 <label>ICD-10 Code <span class="req">*</span></label>
@@ -292,62 +323,96 @@
                 </select>
               </div>
               <div class="field">
-                <label>Assessment Used</label>
-                <select id="assessment">
+                <label>Diagnosis Date</label>
+                <input type="date" id="diagnosisDate"/>
+              </div>
+              <div class="field">
+                <label>Diagnostic Tool</label>
+                <select id="diagnosticTool">
                   <option value="">Select…</option>
                   <option>ADOS-2</option>
                   <option>ADI-R</option>
                   <option>ADOS-2 + ADI-R</option>
                   <option>CARS-2</option>
-                  <option>Vineland-3</option>
                   <option>Other</option>
-                  <option>Not yet completed</option>
                 </select>
+              </div>
+              <div class="field">
+                <label>Assessment Type</label>
+                <select id="assessType">
+                  <option value="VB-MAPP">VB-MAPP</option>
+                  <option value="ABLLS-R">ABLLS-R</option>
+                  <option value="Vineland-3">Vineland-3</option>
+                  <option value="VB-MAPP + Vineland">VB-MAPP + Vineland</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>VB-MAPP Score / Level</label>
+                <input type="text" id="vbmapp" placeholder="e.g. Level 1 (0–17)"/>
+              </div>
+              <div class="field">
+                <label>Assessment Date</label>
+                <input type="date" id="assessDate"/>
               </div>
               <div class="field span-2">
                 <label>Clinical Summary <span class="req">*</span></label>
-                <textarea id="clinicalSummary" rows="4" placeholder="Describe the patient's current functioning level, severity, behavioral challenges, and clinical justification for ABA services…"></textarea>
+                <textarea id="clinicalSummary" rows="4" placeholder="Describe functioning level, severity, behavioral challenges, and clinical justification…"></textarea>
               </div>
               <div class="field span-2">
                 <label>Safety Concerns</label>
-                <textarea id="safetyConcerns" rows="2" placeholder="List any safety concerns (SIB, aggression, elopement, PICA, etc.)…"></textarea>
+                <textarea id="safetyConcerns" rows="2" placeholder="SIB, aggression, elopement, PICA, etc.…"></textarea>
               </div>
               <div class="field">
                 <label>Telehealth?</label>
                 <select id="telehealth">
-                  <option value="no">No — In-person only</option>
-                  <option value="yes">Yes — Telehealth included</option>
-                  <option value="hybrid">Hybrid</option>
+                  <option value="No">No — In-person only</option>
+                  <option value="Yes">Yes — Telehealth included</option>
+                  <option value="Hybrid">Hybrid</option>
                 </select>
               </div>
               <div class="field">
                 <label>Setting</label>
                 <select id="setting">
-                  <option value="clinic">Clinic</option>
-                  <option value="home">Home</option>
-                  <option value="school">School</option>
-                  <option value="community">Community</option>
-                  <option value="mixed">Mixed</option>
+                  <option value="Clinic">Clinic</option>
+                  <option value="Home">Home</option>
+                  <option value="School">School</option>
+                  <option value="Community">Community</option>
+                  <option value="Mixed">Mixed</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>FBA Status</label>
+                <select id="fbaStatus">
+                  <option value="">Select…</option>
+                  <option value="completed_recent">Completed within last 6 months</option>
+                  <option value="completed_older">Completed &gt; 6 months ago</option>
+                  <option value="in_progress">In progress</option>
+                  <option value="not_started">Not yet completed</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Prior ABA Services</label>
+                <select id="priorABA">
+                  <option value="">Select…</option>
+                  <option value="yes">Yes — previously authorized</option>
+                  <option value="no">No — first authorization</option>
                 </select>
               </div>
             </div>
           </div>
 
-          <!-- CPT CODES -->
+          <!-- CPT TABLE -->
           <div class="form-section">
-            <div class="form-section-title">CPT Codes & Units</div>
+            <div class="form-section-title">CPT Codes &amp; Units</div>
             <div style="padding:14px 16px;overflow-x:auto">
               <table class="cpt-table">
                 <thead>
                   <tr>
-                    <th>Include</th>
-                    <th>CPT</th>
-                    <th>Description</th>
-                    <th>Units/Wk</th>
-                    <th>Hrs/Wk</th>
+                    <th>Include</th><th>CPT</th><th>Description</th>
+                    <th>Units/Wk</th><th>Hrs/Wk</th>
                   </tr>
                 </thead>
-                <tbody id="cptTableBody">
+                <tbody>
                   <tr>
                     <td><input type="checkbox" id="chk97153" checked onchange="updateMUE()"/></td>
                     <td><span class="cpt-badge">97153</span></td>
@@ -394,7 +459,8 @@
               </table>
             </div>
             <div class="mue-note">
-              CMS MUE Cap (8 hr/day): Direct services total = <span class="mue-counter" id="mueTotal">10.0 hrs/wk</span>
+              CMS MUE Cap (8 hr/day): Direct services total =
+              <span class="mue-counter" id="mueTotal">10.0 hrs/wk</span>
               <span id="mueStatus" style="margin-left:8px;font-weight:700;color:var(--mint)">✓ Compliant</span>
             </div>
           </div>
@@ -404,62 +470,53 @@
             <div class="form-section-title">Provider Information</div>
             <div class="form-grid">
               <div class="field">
-                <label>BCBA Name <span class="req">*</span></label>
+                <label>BCBA Full Name <span class="req">*</span></label>
                 <input type="text" id="bcbaName" placeholder="Full name"/>
+              </div>
+              <div class="field">
+                <label>BCBA License #</label>
+                <input type="text" id="bcbaLicense" placeholder="State license number"/>
               </div>
               <div class="field">
                 <label>BCBA NPI</label>
                 <input type="text" id="bcbaNPI" placeholder="10-digit NPI"/>
               </div>
               <div class="field">
-                <label>Agency/Clinic Name</label>
+                <label>Agency / Clinic Name</label>
                 <input type="text" id="agencyName" placeholder="Practice or agency name"/>
               </div>
               <div class="field">
+                <label>Clinic NPI</label>
+                <input type="text" id="clinicNPI" placeholder="10-digit NPI"/>
+              </div>
+              <div class="field">
                 <label>Supervising Physician</label>
-                <input type="text" id="physName" placeholder="MD/DO name (if required)"/>
+                <input type="text" id="physName" placeholder="MD/DO name"/>
               </div>
               <div class="field">
                 <label>Physician NPI</label>
                 <input type="text" id="physNPI" placeholder="10-digit NPI"/>
               </div>
               <div class="field">
-                <label>Supervision Hours/Month</label>
+                <label>Supervision Hrs/Month</label>
                 <input type="number" id="supervisionHrs" placeholder="e.g. 8" min="0"/>
               </div>
             </div>
           </div>
 
-          <!-- ADDITIONAL CLINICAL NOTES -->
           <div class="form-section">
-            <div class="form-section-title">Additional Clinical Notes</div>
+            <div class="form-section-title">Caregiver Involvement</div>
             <div class="form-grid cols-1">
-              <div class="field">
-                <label>Previous ABA Services / Prior Auth History</label>
-                <textarea id="priorHistory" rows="2" placeholder="Describe prior ABA history, outcomes, and any previous authorizations…"></textarea>
-              </div>
               <div class="field">
                 <label>Caregiver Training Goals</label>
                 <textarea id="caregiverGoals" rows="2" placeholder="Describe caregiver training objectives and family involvement…"></textarea>
-              </div>
-              <div class="field">
-                <label>FBA / Behavior Plan Status</label>
-                <select id="fbaStatus">
-                  <option value="">Select…</option>
-                  <option value="completed_recent">Completed within last 6 months</option>
-                  <option value="completed_older">Completed > 6 months ago</option>
-                  <option value="in_progress">In progress</option>
-                  <option value="not_started">Not yet completed</option>
-                </select>
               </div>
             </div>
           </div>
 
         </div>
-
-        <!-- GENERATE BUTTON -->
         <button class="btn-generate" id="generateBtn" onclick="generatePA()">
-          <span>✦</span> Generate Prior Authorization Draft
+          ✦ Generate Prior Authorization Draft
         </button>
       </div>
 
@@ -470,35 +527,42 @@
             <div class="form-section-title">Appeal Information</div>
             <div class="form-grid cols-1">
               <div class="field">
-                <label>Denial Reason / Payer Language</label>
-                <textarea id="denialReason" rows="3" placeholder="Paste the exact denial reason or payer language from the EOB/denial letter…"></textarea>
+                <label>Denial Reason / Payer Language <span class="req">*</span></label>
+                <textarea id="denialReason" rows="3" placeholder="Paste the exact denial reason from the EOB/denial letter…"></textarea>
               </div>
               <div class="field">
                 <label>Denied CPT Codes</label>
-                <input type="text" id="deniedCodes" placeholder="e.g. 97153, 97155"/>
+                <input type="text" id="deniedCodes" placeholder="e.g. 97153, 97155-HO"/>
               </div>
               <div class="field">
                 <label>Patient Name</label>
                 <input type="text" id="appealPatient" placeholder="Patient full name"/>
               </div>
               <div class="field">
-                <label>Payer</label>
+                <label>Payer <span class="req">*</span></label>
                 <select id="appealPayer">
                   <option value="">Select payer…</option>
-                  <option>Aetna</option><option>BCBS</option><option>UnitedHealthcare</option>
-                  <option>Cigna</option><option>Molina</option><option>Medicaid</option><option>Other</option>
+                  <option value="aetna">Aetna</option>
+                  <option value="bcbs">BCBS</option>
+                  <option value="uhc">UnitedHealthcare</option>
+                  <option value="cigna">Cigna</option>
+                  <option value="molina">Molina</option>
+                  <option value="medicaid">Medicaid</option>
+                  <option value="anthem">Anthem</option>
                 </select>
               </div>
               <div class="field">
-                <label>Clinical Justification for Appeal</label>
-                <textarea id="appealClinical" rows="4" placeholder="Provide clinical evidence and justification for why the services should be approved…"></textarea>
+                <label>State</label>
+                <input type="text" id="appealState" placeholder="e.g. CA"/>
+              </div>
+              <div class="field">
+                <label>Clinical Justification</label>
+                <textarea id="appealClinical" rows="4" placeholder="Clinical evidence and justification for why services should be approved…"></textarea>
               </div>
             </div>
           </div>
         </div>
-        <button class="btn-generate" onclick="generateAppeal()">
-          <span>✦</span> Generate Appeal Letter
-        </button>
+        <button class="btn-generate" onclick="generateAppeal()">✦ Generate Appeal Letter</button>
       </div>
 
       <!-- LOOKUP TAB -->
@@ -508,32 +572,30 @@
             <div class="form-section-title">Payer Policy Lookup</div>
             <div class="form-grid">
               <div class="field">
-                <label>Payer</label>
+                <label>Payer <span class="req">*</span></label>
                 <select id="lookupPayer">
                   <option value="">Select payer…</option>
-                  <option>Aetna</option><option>BCBS</option><option>UnitedHealthcare</option>
-                  <option>Cigna</option><option>Molina</option><option>Medicaid</option><option>Humana</option>
+                  <option value="aetna">Aetna</option>
+                  <option value="bcbs">BCBS</option>
+                  <option value="uhc">UnitedHealthcare</option>
+                  <option value="cigna">Cigna</option>
+                  <option value="molina">Molina</option>
+                  <option value="medicaid">Medicaid</option>
+                  <option value="anthem">Anthem</option>
                 </select>
               </div>
               <div class="field">
                 <label>State</label>
-                <select id="lookupState">
-                  <option value="">Select state…</option>
-                  <option>CA</option><option>TX</option><option>FL</option><option>NY</option>
-                  <option>IL</option><option>PA</option><option>OH</option><option>GA</option>
-                  <option>NC</option><option>MI</option><option>Other</option>
-                </select>
+                <input type="text" id="lookupState" placeholder="e.g. CA"/>
               </div>
               <div class="field span-2">
-                <label>Specific Question</label>
-                <textarea id="lookupQuestion" rows="3" placeholder="e.g. What are the unit limits for 97153 under Aetna in California? Is ADOS-2 required?"></textarea>
+                <label>Your Question <span class="req">*</span></label>
+                <textarea id="lookupQuestion" rows="3" placeholder="e.g. What are the unit limits for 97153 under Aetna in California?"></textarea>
               </div>
             </div>
           </div>
         </div>
-        <button class="btn-generate" onclick="generateLookup()">
-          <span>✦</span> Look Up Payer Policy
-        </button>
+        <button class="btn-generate" onclick="generateLookup()">✦ Look Up Payer Policy</button>
       </div>
 
     </div>
@@ -550,15 +612,11 @@
         </div>
       </div>
       <div class="output-body" id="outputBody">
-
-        <!-- PLACEHOLDER STATE -->
         <div class="state-placeholder" id="statePlaceholder">
           <div class="state-icon">📋</div>
           <div class="state-title">Ready to Generate</div>
-          <div class="state-sub">Fill in the patient and clinical details on the left, then click Generate to create your prior authorization draft.</div>
+          <div class="state-sub">Fill in patient and clinical details, then click Generate.</div>
         </div>
-
-        <!-- LOADING STATE -->
         <div class="state-loading" id="stateLoading" style="display:none">
           <div class="spinner"></div>
           <div class="state-title">Generating Draft…</div>
@@ -567,100 +625,172 @@
             <div class="progress-step" id="step2"><div class="step-dot"></div>Building clinical narrative</div>
             <div class="progress-step" id="step3"><div class="step-dot"></div>Generating SMART goals</div>
             <div class="progress-step" id="step4"><div class="step-dot"></div>Writing LMN bullets</div>
-            <div class="progress-step" id="step5"><div class="step-dot"></div>QA & compliance check</div>
+            <div class="progress-step" id="step5"><div class="step-dot"></div>Running compliance check</div>
           </div>
         </div>
-
-        <!-- ERROR STATE -->
         <div id="stateError" style="display:none;padding:24px">
           <div class="error-box" id="errorMsg"></div>
         </div>
-
-        <!-- DRAFT OUTPUT -->
         <div class="draft-output" id="draftOutput"></div>
-
       </div>
     </div>
   </div>
 
-</div>
+</div><!-- /.app-wrap -->
 
 <script>
-/* ═══════════════════════════════════════
-   AURACOMPLY AI — APP v2.1
-   ═══════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════
+   AURACOMPLY AI — app.html Controller v3.1
 
-const ROUTES = { LOGIN: 'login.html' };
-let currentDraftText = '';
+   SESSION CONTRACT (set by login.html, read here):
+     sessionStorage.aura_auth = "true"  → auth guard
+     sessionStorage.aura_user = email   → passed to generate-pa.js audit log
+     sessionStorage.aura_name = name    → navbar display
 
-/* ── AUTH GUARD — safe loader ── */
+   API ENDPOINTS:
+     POST /api/generate-pa  → netlify/functions/generate-pa.js
+     POST /api/validate-pa  → netlify/functions/validate-pa.js
+
+   REQUEST BODY (generate-pa.js contract):
+     { patientData:{name,dob,diagnosis,cptCode,weeks,...},
+       payer, state, payerType, authType, clinicianNotes, isMedicaidArmed }
+
+   RESPONSE (generate-pa.js):
+     { draft, structured:{section1-11}, status, mueWarning, payerMeta, requestId }
+
+   REQUEST BODY (validate-pa.js contract):
+     { draft, payer, state, hoursPerWeek, diagnosisDate }
+
+   RESPONSE (validate-pa.js):
+     { ready, score, denialRiskLabel, errors[], warnings[], suggestions[], flags[] }
+══════════════════════════════════════════════════════════════════ */
+
+/* ── Shared session keys — must match login.html exactly ── */
+var SESSION = { AUTH: 'aura_auth', USER: 'aura_user', NAME: 'aura_name' };
+var LOCAL   = { LOGOUT: 'aura_logout' };
+var ROUTES  = { LOGIN: 'login.html' };
+
+var currentDraftText = '';
+var progressTimer    = null;
+
+/* ════════════════════════════════════════════════════════
+   [FIX 6] AUTH GUARD
+   OLD: only netlifyIdentity.on('init') — slow async check
+   NEW: sessionStorage fast-check first (written by login.html),
+        then netlifyIdentity background verify
+════════════════════════════════════════════════════════ */
 function initAuth() {
-  /* If running locally (Live Server / file://) skip auth guard */
-  const isLocal = location.hostname === 'localhost'
+  var isLocal = location.hostname === 'localhost'
     || location.hostname === '127.0.0.1'
     || location.protocol === 'file:';
 
   if (isLocal) {
-    const userEl = document.getElementById('userEmail');
-    if (userEl) userEl.textContent = 'local-dev@preview';
-    console.warn('%cAuraComply: running in LOCAL mode — auth bypassed', 'color:orange;font-weight:700');
+    document.getElementById('userDisplay').textContent = 'local-dev@preview';
+    console.warn('%cAuraComply: LOCAL MODE — auth bypassed', 'color:orange;font-weight:700');
     return;
   }
 
-  /* Production — netlifyIdentity must be available */
-  if (typeof netlifyIdentity === 'undefined') {
-    console.error('netlifyIdentity widget not loaded. Check CDN script tag.');
+  /* Fast check — no network required */
+  if (sessionStorage.getItem(SESSION.AUTH) !== 'true') {
+    window.location.replace(ROUTES.LOGIN);
     return;
   }
 
-  netlifyIdentity.on('init', function(user) {
-    if (!user) {
+  /* Populate navbar immediately from sessionStorage */
+  var name  = sessionStorage.getItem(SESSION.NAME) || '';
+  var email = sessionStorage.getItem(SESSION.USER) || '';
+  document.getElementById('userDisplay').textContent = name || email || 'User';
+
+  /* Background verify with Netlify Identity — catches expired tokens */
+  if (typeof netlifyIdentity !== 'undefined') {
+    netlifyIdentity.on('init', function (user) {
+      if (!user) {
+        sessionStorage.removeItem(SESSION.AUTH);
+        sessionStorage.removeItem(SESSION.USER);
+        sessionStorage.removeItem(SESSION.NAME);
+        window.location.replace(ROUTES.LOGIN);
+      }
+    });
+    netlifyIdentity.on('logout', function () {
+      sessionStorage.clear();
       window.location.replace(ROUTES.LOGIN);
-      return;
-    }
-    const email = user.email || 'User';
-    const userEl = document.getElementById('userEmail');
-    if (userEl) userEl.textContent = email;
-  });
-
-  netlifyIdentity.on('logout', () => {
-    window.location.replace(ROUTES.LOGIN + '?logout=1');
-  });
+    });
+  }
 }
 
-document.getElementById('signoutBtn').addEventListener('click', () => {
+/* ════════════════════════════════════════════════════════
+   [FIX 5] AUTH HEADER BUILDER
+   Attaches Bearer JWT to every API call.
+   generate-pa.js and validate-pa.js both return 401 without it.
+════════════════════════════════════════════════════════ */
+async function getAuthHeaders() {
+  var isLocal = location.hostname === 'localhost'
+    || location.hostname === '127.0.0.1'
+    || location.protocol === 'file:';
+
+  if (isLocal) return { 'Content-Type': 'application/json' };
+
+  var token = (typeof netlifyIdentity !== 'undefined')
+    ? (netlifyIdentity.currentUser() && netlifyIdentity.currentUser().token
+       ? netlifyIdentity.currentUser().token.access_token
+       : null)
+    : null;
+
+  if (!token) {
+    localStorage.setItem(LOCAL.LOGOUT, '1');
+    window.location.replace(ROUTES.LOGIN);
+    return null;
+  }
+
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + token
+  };
+}
+
+/* ════════════════════════════════════════════════════════
+   [FIX 7] SIGNOUT
+   OLD: netlifyIdentity.logout() only
+   NEW: sets localStorage.aura_logout="1" first so login.html
+        detects it and clears the full session properly
+════════════════════════════════════════════════════════ */
+document.getElementById('signoutBtn').addEventListener('click', function () {
+  localStorage.setItem(LOCAL.LOGOUT, '1');
+  sessionStorage.removeItem(SESSION.AUTH);
+  sessionStorage.removeItem(SESSION.USER);
+  sessionStorage.removeItem(SESSION.NAME);
   if (typeof netlifyIdentity !== 'undefined') {
     netlifyIdentity.logout();
   } else {
-    window.location.replace(ROUTES.LOGIN);
+    window.location.replace(ROUTES.LOGIN + '?logout=1');
   }
 });
 
-/* ── TABS ── */
-function switchTab(name) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+/* ── Tabs ── */
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
   document.getElementById('tab-' + name).classList.add('active');
-  event.target.classList.add('active');
+  if (btn) btn.classList.add('active');
 }
 
-/* ── MUE CALCULATOR ── */
+/* ── MUE calculator ── */
 function updateMUE() {
-  const codes = ['97153','97154','97155','97158'];
-  let totalHrs = 0;
-  ['97153','97154','97155','97156','97157','97158'].forEach(code => {
-    const units = parseInt(document.getElementById('u' + code)?.value || 0);
-    const hrs = (units * 15 / 60).toFixed(1);
-    const hEl = document.getElementById('h' + code);
-    if (hEl) hEl.textContent = hrs;
-    if (codes.includes(code)) totalHrs += units * 15 / 60;
+  var direct = ['97153','97154','97155','97158'];
+  var all    = ['97153','97154','97155','97156','97157','97158'];
+  var directHrs = 0;
+
+  all.forEach(function (code) {
+    var units = parseInt(document.getElementById('u' + code).value) || 0;
+    var hrs   = (units * 15 / 60).toFixed(1);
+    document.getElementById('h' + code).textContent = hrs;
+    if (direct.indexOf(code) !== -1) directHrs += units * 15 / 60;
   });
-  const dailyMax = 8;
-  const weeklyMax = dailyMax * 5;
-  document.getElementById('mueTotal').textContent = totalHrs.toFixed(1) + ' hrs/wk';
-  const mueEl = document.getElementById('mueStatus');
-  if (totalHrs / 5 > dailyMax) {
-    mueEl.textContent = '⚠ EXCEEDS 8hr/day cap';
+
+  document.getElementById('mueTotal').textContent = directHrs.toFixed(1) + ' hrs/wk';
+  var mueEl = document.getElementById('mueStatus');
+  if (directHrs / 5 > 8) {
+    mueEl.textContent = '⚠ EXCEEDS 8 hr/day cap';
     mueEl.style.color = 'var(--danger)';
   } else {
     mueEl.textContent = '✓ Compliant';
@@ -668,233 +798,144 @@ function updateMUE() {
   }
 }
 
-/* ── COLLECT FORM DATA ── */
+/* ════════════════════════════════════════════════════════
+   [FIX 2] COLLECT FORM DATA
+   OLD: collected flat UI values for buildPrompt() string
+   NEW: maps to exact patientData contract expected by generate-pa.js
+════════════════════════════════════════════════════════ */
 function collectFormData() {
-  const cptCodes = [];
-  ['97153','97154','97155','97156','97157','97158'].forEach(code => {
-    if (document.getElementById('chk' + code)?.checked) {
-      const units = parseInt(document.getElementById('u' + code)?.value || 0);
-      if (units > 0) cptCodes.push({ code, unitsPerWeek: units, hrsPerWeek: (units * 15 / 60).toFixed(1) });
+  /* Primary CPT — first checked code with units > 0 */
+  var ordered = ['97153','97154','97155','97156','97157','97158'];
+  var primaryCpt = '';
+  var totalHrs   = 0;
+  var cptSummary = [];
+
+  ordered.forEach(function (code) {
+    var chk   = document.getElementById('chk' + code);
+    var input = document.getElementById('u'   + code);
+    if (chk && chk.checked && input) {
+      var units = parseInt(input.value) || 0;
+      if (units > 0) {
+        if (!primaryCpt) primaryCpt = code;
+        var hrs = units * 15 / 60;
+        totalHrs += hrs;
+        cptSummary.push(code + ': ' + units + ' units/wk (' + hrs.toFixed(1) + ' hrs/wk)');
+      }
     }
   });
+
+  var payerKey  = document.getElementById('patPayer').value;   /* already lowercase key */
+  var isMedicaid = (payerKey === 'medicaid' || payerKey === 'molina');
+  var firstName = document.getElementById('patFirstName').value.trim();
+  var lastName  = document.getElementById('patLastName').value.trim();
+
+  /* Build clinicianNotes by combining all free-text fields */
+  var notes = [
+    document.getElementById('clinicalSummary').value,
+    document.getElementById('safetyConcerns').value
+      ? 'Safety concerns: ' + document.getElementById('safetyConcerns').value
+      : '',
+    document.getElementById('caregiverGoals').value
+      ? 'Caregiver goals: ' + document.getElementById('caregiverGoals').value
+      : '',
+    document.getElementById('fbaStatus').value
+      ? 'FBA status: ' + document.getElementById('fbaStatus').value
+      : '',
+    document.getElementById('priorABA').value
+      ? 'Prior ABA: ' + document.getElementById('priorABA').value
+      : '',
+    cptSummary.length > 1
+      ? 'All requested CPTs: ' + cptSummary.join(' | ')
+      : '',
+  ].filter(Boolean).join('\n');
+
   return {
-    patientName: `${document.getElementById('patFirstName').value} ${document.getElementById('patLastName').value}`.trim(),
-    dob: document.getElementById('patDOB').value,
-    memberID: document.getElementById('memberID').value,
-    state: document.getElementById('patState').value,
-    payer: document.getElementById('patPayer').value,
-    authType: document.getElementById('authType').value,
-    authStart: document.getElementById('authStart').value,
-    icd10: document.getElementById('icd10').value,
-    assessment: document.getElementById('assessment').value,
-    clinicalSummary: document.getElementById('clinicalSummary').value,
-    safetyConcerns: document.getElementById('safetyConcerns').value,
-    telehealth: document.getElementById('telehealth').value,
-    setting: document.getElementById('setting').value,
-    cptCodes,
-    bcbaName: document.getElementById('bcbaName').value,
-    bcbaNPI: document.getElementById('bcbaNPI').value,
-    agencyName: document.getElementById('agencyName').value,
-    physName: document.getElementById('physName').value,
-    physNPI: document.getElementById('physNPI').value,
-    supervisionHrs: document.getElementById('supervisionHrs').value,
-    priorHistory: document.getElementById('priorHistory').value,
-    caregiverGoals: document.getElementById('caregiverGoals').value,
-    fbaStatus: document.getElementById('fbaStatus').value,
+    /* patientData matches generate-pa.js REQUIRED_PATIENT_FIELDS + optional fields */
+    patientData: {
+      name:           (firstName + ' ' + lastName).trim(),
+      dob:            document.getElementById('patDOB').value,
+      diagnosis:      document.getElementById('icd10').value,
+      cptCode:        primaryCpt || '97153',
+      weeks:          parseInt(document.getElementById('authWeeks').value) || 12,
+      insuranceId:    document.getElementById('memberID').value,
+      diagnosisDate:  document.getElementById('diagnosisDate').value,
+      diagnosticTool: document.getElementById('diagnosticTool').value,
+      assessmentType: document.getElementById('assessType').value,
+      vbmapp:         document.getElementById('vbmapp').value,
+      assessDate:     document.getElementById('assessDate').value,
+      hoursPerWeek:   totalHrs.toFixed(1),
+      startDate:      document.getElementById('authStart').value,
+      setting:        document.getElementById('setting').value,
+      telehealth:     document.getElementById('telehealth').value,
+      priorAuthNumber:document.getElementById('priorAuthNum').value,
+      bcbaName:       document.getElementById('bcbaName').value,
+      bcbaLicense:    document.getElementById('bcbaLicense').value,
+      bcbaNpi:        document.getElementById('bcbaNPI').value,
+      clinicName:     document.getElementById('agencyName').value,
+      clinicNpi:      document.getElementById('clinicNPI').value,
+      supervisingMd:  document.getElementById('physName').value,
+      physicianNpi:   document.getElementById('physNPI').value,
+    },
+    /* Top-level fields read directly by generate-pa.js */
+    payer:          payerKey,
+    payerName:      document.getElementById('patPayer').options[document.getElementById('patPayer').selectedIndex].text,
+    state:          document.getElementById('patState').value,
+    payerType:      isMedicaid ? 'Medicaid' : 'Commercial',
+    authType:       document.getElementById('authType').value,
+    isMedicaidArmed:isMedicaid ? 'yes' : 'no',
+    clinicianNotes: notes,
+    /* Pass hoursPerWeek and diagnosisDate at top level for validate-pa.js */
+    _hoursPerWeek:  totalHrs.toFixed(1),
+    _diagnosisDate: document.getElementById('diagnosisDate').value,
   };
 }
 
-/* ── SHOW STATES ── */
+/* ── Show/hide output states ── */
 function showState(state) {
   document.getElementById('statePlaceholder').style.display = state === 'placeholder' ? 'flex' : 'none';
-  document.getElementById('stateLoading').style.display = state === 'loading' ? 'flex' : 'none';
-  document.getElementById('stateError').style.display = state === 'error' ? 'block' : 'none';
+  document.getElementById('stateLoading').style.display     = state === 'loading'     ? 'flex' : 'none';
+  document.getElementById('stateError').style.display       = state === 'error'       ? 'block': 'none';
   document.getElementById('draftOutput').classList.toggle('visible', state === 'draft');
-  document.getElementById('copyBtn').style.display = state === 'draft' ? 'inline-block' : 'none';
+  document.getElementById('copyBtn').style.display     = state === 'draft' ? 'inline-block' : 'none';
   document.getElementById('downloadBtn').style.display = state === 'draft' ? 'inline-block' : 'none';
 }
 
-/* ── PROGRESS ANIMATION ── */
-let progressTimer = null;
+function showError(msg) {
+  showState('error');
+  document.getElementById('errorMsg').innerHTML = msg;
+  document.getElementById('outputTitle').textContent = 'Error';
+}
+
+/* ── Progress animation ── */
 function startProgress() {
-  const steps = ['step1','step2','step3','step4','step5'];
-  let i = 0;
-  steps.forEach(s => { document.getElementById(s).className = 'progress-step'; });
+  var steps = ['step1','step2','step3','step4','step5'];
+  var i = 0;
+  steps.forEach(function (s) { document.getElementById(s).className = 'progress-step'; });
   document.getElementById(steps[0]).classList.add('active');
-  progressTimer = setInterval(() => {
+  progressTimer = setInterval(function () {
     if (i > 0) document.getElementById(steps[i-1]).className = 'progress-step done';
     i++;
     if (i < steps.length) document.getElementById(steps[i]).classList.add('active');
     else clearInterval(progressTimer);
-  }, 1800);
+  }, 2000);
 }
-function stopProgress() {
-  if (progressTimer) clearInterval(progressTimer);
-}
+function stopProgress() { if (progressTimer) { clearInterval(progressTimer); progressTimer = null; } }
 
-/* ── BUILD PROMPT ── */
-function buildPrompt(data) {
-  return `You are AuraComply AI — a nurse-led ABA prior authorization specialist. Generate a complete 11-section prior authorization draft for the following patient. Output ONLY valid JSON matching the schema exactly.
-
-PATIENT DATA:
-- Name: ${data.patientName || '[Confirm with clinic — not provided]'}
-- DOB: ${data.dob || '[Confirm with clinic — not provided]'}
-- Member ID: ${data.memberID || '[Confirm with clinic — not provided]'}
-- State: ${data.state || '[Confirm with clinic — not provided]'}
-- Payer: ${data.payer || '[Confirm with clinic — not provided]'}
-- Auth Type: ${data.authType}
-- Auth Start: ${data.authStart || '[Confirm with clinic — not provided]'}
-- ICD-10: ${data.icd10 || '[Confirm with clinic — not provided]'}
-- Assessment: ${data.assessment || '[Confirm with clinic — not provided]'}
-- Clinical Summary: ${data.clinicalSummary || '[Confirm with clinic — not provided]'}
-- Safety Concerns: ${data.safetyConcerns || 'None reported'}
-- Setting: ${data.setting}
-- Telehealth: ${data.telehealth}
-- CPT Codes: ${JSON.stringify(data.cptCodes)}
-- BCBA Name: ${data.bcbaName || '[Confirm with clinic — not provided]'}
-- BCBA NPI: ${data.bcbaNPI || '[Confirm with clinic — not provided]'}
-- Agency: ${data.agencyName || '[Confirm with clinic — not provided]'}
-- Physician: ${data.physName || '[Confirm with clinic — not provided]'}
-- Physician NPI: ${data.physNPI || '[Confirm with clinic — not provided]'}
-- Supervision Hrs/Month: ${data.supervisionHrs || '[Confirm with clinic — not provided]'}
-- Prior ABA History: ${data.priorHistory || 'Not provided'}
-- Caregiver Goals: ${data.caregiverGoals || 'Not provided'}
-- FBA Status: ${data.fbaStatus || 'Not provided'}
-
-RULES:
-- Apply ALL payer-specific rules for ${data.payer} in ${data.state}
-- Aetna/BCBS: add HO modifier to 97155, flag physician co-signature required
-- UnitedHealthcare: flag if 97153 >40 units/week
-- Cigna: flag FBA status critically if not completed within 6 months
-- Molina: use GT modifier for all telehealth + embed EPSDT language
-- Medicaid: embed EPSDT language in sections 5 and 9, require ADOS-2/ADI-R for F84.0
-- F84.9: flag for physician clarification
-- MUE: enforce 8 hr/day cap across 97153+97154+97155+97158
-- Use ONLY data provided. Missing data = "[Confirm with clinic — not provided]"
-
-OUTPUT SCHEMA (return ONLY this JSON, no markdown, no extra text):
-{
-  "meta": { "payer": "", "state": "", "generatedAt": "", "version": "2.1" },
-  "section1": { "header": "..." },
-  "section2": { "patientMetadata": "..." },
-  "section3": { "services": [], "totalHrsPerWeek": 0, "mueCompliant": true, "mueNote": "" },
-  "section4": { "providerInfo": "..." },
-  "section5": { "icd10Code": "", "clinicalSummary": "..." },
-  "section6": { "goals": [] },
-  "section7": { "caregiverPlan": "..." },
-  "section8": { "flags": [], "mueCapStatus": "" },
-  "section9": { "lmnBullets": [] },
-  "section10": { "checklist": [] },
-  "section11": { "qaBullets": [], "readableDisclaimer": "AuraComply AI Draft — Clinician review required before submission. Not for direct submission without BCBA and physician approval." }
-}
-
-Section 6: exactly 7 SMART goals covering Communication, Listener Responding, Safety, Self-Care/ADL, Social Initiation, Play, Problem Behavior Reduction.
-Section 9: exactly 8 LMN bullets: diagnosis+severity, functional impairment, safety risk, intensity justification+cite, ABA evidence, caregiver training, outcomes, provider qualifications.
-Section 10: exactly 10 checklist items.
-Section 11: exactly 6 QA bullets. Last bullet always: "This draft requires BCBA clinical review and physician co-signature before submission."`;
-}
-
-/* ── RENDER DRAFT ── */
-function renderDraft(data) {
-  const out = document.getElementById('draftOutput');
-  let html = '';
-
-  const sec = (num, title, content) => `
-    <div class="draft-section">
-      <div class="draft-section-head">
-        <span class="draft-section-num">§${num}</span> ${title}
-      </div>
-      <div class="draft-section-body">${content}</div>
-    </div>`;
-
-  // S1
-  html += sec(1, 'Authorization Header', `<p>${data.section1?.header || ''}</p>`);
-  // S2
-  html += sec(2, 'Patient Metadata', `<p>${data.section2?.patientMetadata || ''}</p>`);
-  // S3
-  const svcs = (data.section3?.services || []).map(s =>
-    `<div class="goal-item"><span class="goal-domain">${s.code}</span> ${s.hrsPerWeek} hrs/wk · ${s.unitsPerWeek} units · ${s.modifiers?.join(', ') || 'No modifiers'} · ${s.setting || ''}</div>`).join('');
-  html += sec(3, 'Services & Units',
-    `${svcs}<div style="padding:10px 12px;font-size:12px;color:var(--text-3)">Total: <b>${data.section3?.totalHrsPerWeek} hrs/wk</b> · MUE: <b style="color:${data.section3?.mueCompliant ? 'var(--mint)' : 'var(--danger)'}">${data.section3?.mueCompliant ? '✓ Compliant' : '⚠ Non-Compliant'}</b> · ${data.section3?.mueNote || ''}</div>`);
-  // S4
-  html += sec(4, 'Provider Information', `<p>${data.section4?.providerInfo || ''}</p>`);
-  // S5
-  html += sec(5, 'Clinical Justification',
-    `<div style="margin-bottom:8px"><span class="cpt-badge">${data.section5?.icd10Code || ''}</span></div><p>${data.section5?.clinicalSummary || ''}</p>`);
-  // S6
-  const goals = (data.section6?.goals || []).map((g,i) => `
-    <div class="goal-item">
-      <div class="goal-domain">${g.domain || 'Goal ' + (i+1)}</div>
-      <div>${g.goal || g.text || ''}</div>
-      ${g.criterion ? `<div style="font-size:11px;color:var(--text-3);margin-top:3px">Criterion: ${g.criterion} · ${g.timeline || ''}</div>` : ''}
-    </div>`).join('');
-  html += sec(6, 'SMART Goals (7 Domains)', goals || '<p>Goals pending generation</p>');
-  // S7
-  html += sec(7, 'Caregiver Training Plan', `<p>${data.section7?.caregiverPlan || ''}</p>`);
-  // S8
-  const flags = (data.section8?.flags || []).map(f => {
-    const cls = f.toLowerCase().includes('critical') || f.toLowerCase().includes('exceed') ? 'flag-item' : f.toLowerCase().includes('warn') || f.toLowerCase().includes('flag') ? 'flag-item warn' : 'flag-item ok';
-    return `<div class="${cls}">${f}</div>`;
-  }).join('') || '<div class="flag-item ok">No critical flags identified.</div>';
-  html += sec(8, 'Compliance Flags & MUE Status',
-    `${flags}<div style="padding:10px 12px;font-size:12px;color:var(--text-3)">${data.section8?.mueCapStatus || ''}</div>`);
-  // S9
-  const lmn = (data.section9?.lmnBullets || []).map((b,i) =>
-    `<div class="lmn-item"><span class="lmn-num">${i+1}</span><span>${b}</span></div>`).join('');
-  html += sec(9, 'Letter of Medical Necessity', lmn);
-  // S10
-  const chk = (data.section10?.checklist || []).map(c =>
-    `<div class="checklist-item"><span class="check-icon">☑</span><span>${c}</span></div>`).join('');
-  html += sec(10, 'Submission Checklist', chk);
-  // S11
-  const qa = (data.section11?.qaBullets || []).map((q,i) => `
-    <div class="qa-item">
-      <div class="qa-label">QA-${i+1}</div>
-      <div>${q}</div>
-    </div>`).join('');
-  html += sec(11, 'QA & Quality Control', qa);
-
-  // DISCLAIMER
-  html += `<div class="disclaimer-bar">🔒 ${data.section11?.readableDisclaimer || 'AuraComply AI Draft — Clinician review required before submission. Not for direct submission without BCBA and physician approval.'}</div>`;
-
-  out.innerHTML = html;
-
-  // Build plain text for copy/download
-  currentDraftText = buildPlainText(data);
-}
-
-function buildPlainText(data) {
-  let txt = `AURACOMPLY AI — PRIOR AUTHORIZATION DRAFT\n`;
-  txt += `Generated: ${new Date().toLocaleString()}\n`;
-  txt += `Payer: ${data.meta?.payer} | State: ${data.meta?.state}\n\n`;
-  txt += `SECTION 1: ${data.section1?.header}\n\n`;
-  txt += `SECTION 2: ${data.section2?.patientMetadata}\n\n`;
-  txt += `SECTION 3 SERVICES:\n`;
-  (data.section3?.services || []).forEach(s => txt += `  ${s.code}: ${s.unitsPerWeek} units/wk (${s.hrsPerWeek} hrs/wk)\n`);
-  txt += `Total: ${data.section3?.totalHrsPerWeek} hrs/wk\n\n`;
-  txt += `SECTION 4: ${data.section4?.providerInfo}\n\n`;
-  txt += `SECTION 5 [${data.section5?.icd10Code}]:\n${data.section5?.clinicalSummary}\n\n`;
-  txt += `SECTION 6 - SMART GOALS:\n`;
-  (data.section6?.goals || []).forEach((g,i) => txt += `${i+1}. [${g.domain}] ${g.goal || g.text}\n`);
-  txt += `\nSECTION 7 CAREGIVER PLAN:\n${data.section7?.caregiverPlan}\n\n`;
-  txt += `SECTION 8 FLAGS:\n`;
-  (data.section8?.flags || []).forEach(f => txt += `  • ${f}\n`);
-  txt += `\nSECTION 9 - LETTER OF MEDICAL NECESSITY:\n`;
-  (data.section9?.lmnBullets || []).forEach((b,i) => txt += `${i+1}. ${b}\n`);
-  txt += `\nSECTION 10 - CHECKLIST:\n`;
-  (data.section10?.checklist || []).forEach((c,i) => txt += `${i+1}. ${c}\n`);
-  txt += `\nSECTION 11 - QA:\n`;
-  (data.section11?.qaBullets || []).forEach((q,i) => txt += `QA-${i+1}: ${q}\n`);
-  txt += `\n${data.section11?.readableDisclaimer}`;
-  return txt;
-}
-
-/* ── GENERATE PA ── */
+/* ════════════════════════════════════════════════════════
+   [FIX 1,2,3,5] GENERATE PA
+   OLD: POST /.netlify/functions/generate with { prompt }
+        No auth header. Parsed result.content[0].text.
+   NEW: POST /api/generate-pa with patientData shape.
+        Adds Bearer token. Reads { draft, structured, mueWarning }.
+        Then calls validate-pa.js async.
+════════════════════════════════════════════════════════ */
 async function generatePA() {
-  const data = collectFormData();
-  if (!data.payer || !data.state || !data.icd10 || !data.clinicalSummary || !data.bcbaName) {
-    showState('error');
-    document.getElementById('errorMsg').innerHTML = '⚠️ Please fill in all required fields: Payer, State, ICD-10 code, Clinical Summary, and BCBA Name.';
+  var formData = collectFormData();
+
+  /* Required field validation */
+  var p = formData.patientData;
+  if (!formData.payer || !formData.state || !p.diagnosis || !p.name || !p.bcbaName) {
+    showError('⚠️ Please fill in all required fields: Patient Name, State, ICD-10, BCBA Name, and Payer.');
     return;
   }
 
@@ -904,165 +945,468 @@ async function generatePA() {
   document.getElementById('outputTitle').textContent = 'Generating Draft…';
 
   try {
-    const prompt = buildPrompt(data);
-    const response = await fetch('/.netlify/functions/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt })
+    /* [FIX 5] Get auth header with Bearer token */
+    var headers = await getAuthHeaders();
+    if (!headers) return;
+
+    /* [FIX 1,2] Correct endpoint + correct body shape */
+    var res = await fetch('/api/generate-pa', {
+      method:  'POST',
+      headers: headers,
+      body:    JSON.stringify(formData),
     });
 
     stopProgress();
 
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`API error ${response.status}: ${err}`);
+    /* Auth expired */
+    if (res.status === 401) {
+      localStorage.setItem(LOCAL.LOGOUT, '1');
+      window.location.replace(ROUTES.LOGIN);
+      return;
     }
 
-    const result = await response.json();
-    let parsed;
-    try {
-      const raw = result.content?.[0]?.text || result.text || '';
-      const cleaned = raw.replace(/```json|```/g, '').trim();
-      parsed = JSON.parse(cleaned);
-    } catch(e) {
-      throw new Error('Failed to parse AI response. The model returned invalid JSON. Please try again.');
+    /* [FIX 3] Parse the actual response shape from generate-pa.js */
+    var result = await res.json();
+
+    if (!res.ok) {
+      throw new Error(result.error || result.detail || 'API error ' + res.status);
     }
 
+    if (result.status === 'success_raw' || !result.structured) {
+      /* Fallback: raw text response (JSON parse failed server-side) */
+      showState('draft');
+      document.getElementById('outputTitle').textContent = 'PA Draft (Review Required)';
+      document.getElementById('draftOutput').innerHTML =
+        '<div style="white-space:pre-wrap;font-size:12.5px;line-height:1.8;font-family:monospace">'
+        + escapeHtml(result.draft || '') + '</div>'
+        + '<div class="disclaimer-bar">🔒 AuraComply AI Draft — Clinician review required before submission.</div>';
+      currentDraftText = result.draft || '';
+      document.getElementById('copyBtn').style.display     = 'inline-block';
+      document.getElementById('downloadBtn').style.display = 'inline-block';
+      return;
+    }
+
+    /* [FIX 4] Render structured draft matching generate-pa.js section1-11 schema */
     showState('draft');
     document.getElementById('outputTitle').textContent = 'Prior Authorization Draft';
-    renderDraft(parsed);
+    renderDraft(result.structured, result.mueWarning, result.payerMeta, result.requestId);
+    currentDraftText = result.draft || '';
 
-  } catch(err) {
+    /* [FIX 9] Call validate-pa.js — runs async, doesn't block UI */
+    validateAsync(
+      result.draft,
+      formData.payer,
+      formData.state,
+      formData._hoursPerWeek,
+      formData._diagnosisDate,
+      headers
+    );
+
+  } catch (err) {
     stopProgress();
-    showState('error');
-    document.getElementById('errorMsg').innerHTML = `<strong>Error:</strong> ${err.message}<br><br>Please check your Netlify function is deployed and the ANTHROPIC_API_KEY is set correctly.`;
-    document.getElementById('outputTitle').textContent = 'Error';
+    showError('<strong>Error:</strong> ' + escapeHtml(err.message)
+      + '<br><br>Check that ANTHROPIC_API_KEY is set in Netlify environment variables.');
   }
 
   document.getElementById('generateBtn').disabled = false;
 }
 
-/* ── GENERATE APPEAL ── */
-async function generateAppeal() {
-  const denialReason = document.getElementById('denialReason').value;
-  const payer = document.getElementById('appealPayer').value;
-  const patient = document.getElementById('appealPatient').value;
-  const clinical = document.getElementById('appealClinical').value;
-  const codes = document.getElementById('deniedCodes').value;
+/* ════════════════════════════════════════════════════════
+   [FIX 9] VALIDATE — async, non-blocking
+   Called after every successful PA generation.
+   Prepends validation score panel to the draft output.
+════════════════════════════════════════════════════════ */
+async function validateAsync(draft, payer, state, hoursPerWeek, diagnosisDate, headers) {
+  /* Show loading placeholder in validation slot */
+  var placeholder = document.createElement('div');
+  placeholder.id  = 'valLoading';
+  placeholder.className = 'val-section';
+  placeholder.innerHTML = '<div class="val-loading">&#9203; Running denial-risk check…</div>';
+  var draftEl = document.getElementById('draftOutput');
+  draftEl.insertBefore(placeholder, draftEl.firstChild);
 
-  if (!denialReason || !payer) {
-    showState('error');
-    document.getElementById('errorMsg').innerHTML = '⚠️ Please fill in the Denial Reason and Payer.';
+  try {
+    var res = await fetch('/api/validate-pa', {
+      method:  'POST',
+      headers: headers,
+      body:    JSON.stringify({ draft: draft, payer: payer, state: state,
+                                hoursPerWeek: hoursPerWeek, diagnosisDate: diagnosisDate }),
+    });
+
+    if (!res.ok) throw new Error('Validation API error ' + res.status);
+    var val = await res.json();
+    renderValidation(val);
+
+  } catch (e) {
+    /* Silent fail — validation is additive, not critical */
+    var existing = document.getElementById('valLoading');
+    if (existing) existing.remove();
+    console.warn('validate-pa failed:', e.message);
+  }
+}
+
+/* ════════════════════════════════════════════════════════
+   [FIX 4] RENDER DRAFT
+   Maps generate-pa.js section1-11 schema to HTML.
+   Schema reference:
+     section1:  { header, bullets[] }
+     section2:  { memberId, dob, age, gender, payerName, planId }
+     section3:  { cpt, description, unitsPerWeek, hrsPerWeek, hrsPerDay, mueCompliance }
+     section4:  { bcbaName, bcbaLicense, bcbaNpi, physician, clinic, clinicNpi }
+     section5:  { icd10, diagnosisDate, keyFindings[], impairments{}, goals[] }
+     section6:  { placeOfService, telehealth, telehealthModifier }
+     section7:  { units97156, units97157, whoAttends, frequency, barriers }
+     section8:  { requestType, priorAuthNumber, notes, mueCompliance }
+     section9:  { bullets[], physicianSignature, bcbaSignature }
+     section10: { checklist[] }
+     section11: { bullets[] }
+════════════════════════════════════════════════════════ */
+function renderDraft(s, mueWarning, payerMeta, requestId) {
+  var html = '';
+
+  /* MUE warning banner */
+  if (mueWarning) {
+    html += '<div class="mue-warn">⚠️ ' + escapeHtml(mueWarning) + '</div>';
+  }
+
+  /* Payer meta banner */
+  if (payerMeta) {
+    html += section('meta', 'Payer Info',
+      kv('Payer',      payerMeta.label || '') +
+      kv('Portal',     payerMeta.portal || '') +
+      kv('Turnaround', (payerMeta.turnaround ? payerMeta.turnaround.standard + ' days standard / ' + payerMeta.turnaround.urgent + ' day urgent' : '')) +
+      kv('Renewal',    payerMeta.renewalMonths ? payerMeta.renewalMonths + ' months' : '') +
+      kv('MD Order',   payerMeta.requiresMdOrder ? '⚠ Required' : 'Not required')
+    );
+  }
+
+  /* S1 — Header */
+  html += section(1, 'Authorization Header',
+    '<p style="margin-bottom:10px">' + escapeHtml(s.section1 && s.section1.header || '') + '</p>'
+    + bullets(s.section1 && s.section1.bullets)
+  );
+
+  /* S2 — Patient */
+  html += section(2, 'Patient Metadata',
+    kv('Member ID',  s.section2 && s.section2.memberId  || '') +
+    kv('DOB',        s.section2 && s.section2.dob       || '') +
+    kv('Age',        s.section2 && s.section2.age       || '') +
+    kv('Gender',     s.section2 && s.section2.gender    || '') +
+    kv('Address',    s.section2 && s.section2.address   || '') +
+    kv('Payer Type', s.section2 && s.section2.payerType || '') +
+    kv('Payer Name', s.section2 && s.section2.payerName || '') +
+    kv('Plan ID',    s.section2 && s.section2.planId    || '')
+  );
+
+  /* S3 — Services */
+  html += section(3, 'Service Data by CPT',
+    kv('CPT Code',      s.section3 && s.section3.cpt         || '') +
+    kv('Description',   s.section3 && s.section3.description || '') +
+    kv('Units / Week',  s.section3 && s.section3.unitsPerWeek || '') +
+    kv('Units / Month', s.section3 && s.section3.unitsPerMonth || '') +
+    kv('Hrs / Day',     s.section3 && s.section3.hrsPerDay   || '') +
+    kv('Hrs / Week',    s.section3 && s.section3.hrsPerWeek  || '') +
+    kv('Effective',     s.section3 && s.section3.effectiveDates || '') +
+    kv('Auth Type',     s.section3 && s.section3.authType    || '') +
+    kv('MUE Status',    s.section3 && s.section3.mueCompliance || '')
+  );
+
+  /* S4 — Provider */
+  html += section(4, 'Provider &amp; Credentialing',
+    kv('BCBA Name',    s.section4 && s.section4.bcbaName      || '') +
+    kv('BCBA License', s.section4 && s.section4.bcbaLicense   || '') +
+    kv('BCBA NPI',     s.section4 && s.section4.bcbaNpi       || '') +
+    kv('Physician',    s.section4 && s.section4.physician     || '') +
+    kv('Phys. NPI',    s.section4 && s.section4.physicianNpi  || '') +
+    kv('Clinic',       s.section4 && s.section4.clinic        || '') +
+    kv('Clinic NPI',   s.section4 && s.section4.clinicNpi     || '') +
+    kv('Enrollment',   s.section4 && s.section4.enrollmentStatus || '')
+  );
+
+  /* S5 — Clinical */
+  var s5 = s.section5 || {};
+  var impairRows = '';
+  if (s5.impairments) {
+    var imp = s5.impairments;
+    impairRows = kv('Communication', imp.communication || '')
+               + kv('Social',        imp.social        || '')
+               + kv('ADL',           imp.adl           || '')
+               + kv('Safety',        imp.safety        || '')
+               + kv('Behavior',      imp.behavior      || '');
+  }
+  var goalsHtml = '';
+  if (s5.goals && s5.goals.length) {
+    goalsHtml = '<div style="margin-top:10px;font-weight:600;font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">SMART Treatment Goals</div>'
+      + s5.goals.map(function (g, i) {
+          return '<div class="goal-item"><div class="goal-num">Goal ' + (i+1) + '</div>' + escapeHtml(g) + '</div>';
+        }).join('');
+  }
+  html += section(5, 'Clinical Documentation',
+    kv('ICD-10',     s5.icd10          || '') +
+    kv('Dx Date',    s5.diagnosisDate  || '') +
+    kv('Dx Tool',    s5.diagnosticTool || '') +
+    kv('Assessment', s5.assessmentMethod || '') +
+    kv('Assess Date',s5.assessmentDate || '') +
+    (s5.keyFindings && s5.keyFindings.length
+      ? '<div style="margin-top:10px;font-weight:600;font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Key Findings</div>'
+        + bullets(s5.keyFindings) : '') +
+    (impairRows
+      ? '<div style="margin-top:10px;font-weight:600;font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Functional Impairments</div>' + impairRows
+      : '') +
+    goalsHtml
+  );
+
+  /* S6 — Setting */
+  html += section(6, 'Setting &amp; Modality',
+    kv('Place of Service', s.section6 && s.section6.placeOfService    || '') +
+    kv('Telehealth',       s.section6 && s.section6.telehealth        || '') +
+    kv('Modifier',         s.section6 && s.section6.telehealthModifier || '') +
+    kv('Payer Note',       s.section6 && s.section6.payerTelehealthNote || '')
+  );
+
+  /* S7 — Caregiver */
+  html += section(7, 'Caregiver Involvement',
+    kv('97156 Units/Mo', s.section7 && s.section7.units97156 || '') +
+    kv('97157 Units/Mo', s.section7 && s.section7.units97157 || '') +
+    kv('Who Attends',    s.section7 && s.section7.whoAttends || '') +
+    kv('Frequency',      s.section7 && s.section7.frequency  || '') +
+    kv('Barriers',       s.section7 && s.section7.barriers   || '')
+  );
+
+  /* S8 — Flags */
+  html += section(8, 'Authorization Flags',
+    kv('Request Type',  s.section8 && s.section8.requestType    || '') +
+    kv('Prior Auth #',  s.section8 && s.section8.priorAuthNumber || '') +
+    kv('Prior Dates',   s.section8 && s.section8.priorDates     || '') +
+    kv('Notes',         s.section8 && s.section8.notes          || '') +
+    kv('MUE Status',    s.section8 && s.section8.mueCompliance  || '')
+  );
+
+  /* S9 — LMN */
+  html += section(9, 'Letter of Medical Necessity',
+    numberedBullets(s.section9 && s.section9.bullets) +
+    kv('Physician Sig', s.section9 && s.section9.physicianSignature || '[Required]') +
+    kv('BCBA Sig',      s.section9 && s.section9.bcbaSignature      || '[Required]')
+  );
+
+  /* S10 — Checklist */
+  html += section(10, 'Pre-Submission Checklist',
+    (s.section10 && s.section10.checklist || []).map(function (c) {
+      return '<div class="check-item"><span class="check-icon">&#9744;</span><span>' + escapeHtml(c) + '</span></div>';
+    }).join('')
+  );
+
+  /* S11 — QA */
+  html += section(11, 'AuraComply AI Alignment', bullets(s.section11 && s.section11.bullets));
+
+  /* Request ID trail */
+  if (requestId) {
+    html += '<div style="text-align:right;font-size:10px;color:var(--text-3);margin-bottom:8px">Request ID: ' + escapeHtml(requestId) + '</div>';
+  }
+
+  html += '<div class="disclaimer-bar">🔒 AURACOMPLY AI DRAFT — Clinician review required before submission. Not for direct submission without BCBA and physician approval.</div>';
+
+  document.getElementById('draftOutput').innerHTML = html;
+}
+
+/* ── Render validate-pa.js response ── */
+function renderValidation(val) {
+  var existing = document.getElementById('valLoading');
+  var riskClass = val.denialRiskLabel === 'Low' ? 'low' : val.denialRiskLabel === 'Medium' ? 'medium' : 'high';
+
+  var html = '<div class="val-section" id="validationPanel">'
+    + '<div class="val-head ' + riskClass + '">'
+    + 'Denial Risk: <strong>' + escapeHtml(val.denialRiskLabel || '') + '</strong>'
+    + '<span class="val-score-pill">Score: ' + (val.score || 0) + '/100</span>'
+    + '</div><div class="val-body">';
+
+  if (val.errors && val.errors.length) {
+    html += val.errors.map(function (e) {
+      return '<div class="val-flag error">🔴 ' + escapeHtml(e) + '</div>';
+    }).join('');
+  }
+  if (val.warnings && val.warnings.length) {
+    html += val.warnings.map(function (w) {
+      return '<div class="val-flag warning">⚠️ ' + escapeHtml(w) + '</div>';
+    }).join('');
+  }
+  if (val.suggestions && val.suggestions.length) {
+    html += val.suggestions.map(function (s) {
+      return '<div class="val-flag ok">💡 ' + escapeHtml(s) + '</div>';
+    }).join('');
+  }
+  if (!val.errors || !val.errors.length) {
+    html += '<div class="val-flag ok">✓ No critical errors found. Ready for clinician review.</div>';
+  }
+  html += '</div></div>';
+
+  if (existing) {
+    existing.outerHTML = html;
+  } else {
+    var draftEl = document.getElementById('draftOutput');
+    draftEl.insertAdjacentHTML('afterbegin', html);
+  }
+}
+
+/* ════════════════════════════════════════════════════════
+   [FIX 10] APPEAL — correct endpoint + auth header
+════════════════════════════════════════════════════════ */
+async function generateAppeal() {
+  var denial   = document.getElementById('denialReason').value.trim();
+  var payer    = document.getElementById('appealPayer').value;
+  var patient  = document.getElementById('appealPatient').value.trim();
+  var clinical = document.getElementById('appealClinical').value.trim();
+  var codes    = document.getElementById('deniedCodes').value.trim();
+  var state    = document.getElementById('appealState').value.trim();
+
+  if (!denial || !payer) {
+    showError('⚠️ Please fill in Denial Reason and Payer.');
     return;
   }
 
-  document.querySelectorAll('.btn-generate').forEach(b => b.disabled = true);
+  document.querySelectorAll('.btn-generate').forEach(function (b) { b.disabled = true; });
   showState('loading');
   document.getElementById('outputTitle').textContent = 'Generating Appeal Letter…';
 
+  var headers = await getAuthHeaders();
+  if (!headers) return;
+
+  /* Route appeal through generate-pa.js using clinicianNotes as the appeal brief */
+  var body = {
+    patientData: {
+      name: patient || '[Patient name not provided]', dob: '', diagnosis: 'F84.0',
+      cptCode: codes ? codes.split(',')[0].trim() : '97153', weeks: 12,
+      bcbaName: '[BCBA — confirm before submission]',
+    },
+    payer: payer, state: state || 'Unknown', payerType: 'Commercial',
+    authType: 'appeal',
+    clinicianNotes: 'APPEAL MODE.\nDenial reason: ' + denial
+      + '\nDenied codes: ' + (codes || 'Not specified')
+      + '\nClinical justification: ' + (clinical || 'See medical records.')
+      + '\nGenerate a complete ABA prior authorization appeal letter addressing this denial.',
+  };
+
   try {
-    const prompt = `You are AuraComply AI. Write a professional, payer-specific ABA appeal letter for:
-Patient: ${patient || 'Not provided'}
-Payer: ${payer}
-Denied CPT Codes: ${codes || 'Not specified'}
-Denial Reason: ${denialReason}
-Clinical Justification: ${clinical || 'Not provided'}
+    var res    = await fetch('/api/generate-pa', { method: 'POST', headers: headers, body: JSON.stringify(body) });
+    var result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'API error ' + res.status);
 
-Write a complete, authoritative appeal letter with: opening statement citing the denial, clinical evidence rebuttal, peer-reviewed evidence citations for ABA efficacy, EPSDT rights if applicable, and a strong closing demand for reconsideration. Format as a professional letter.`;
-
-    const response = await fetch('/.netlify/functions/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt })
-    });
-
-    if (!response.ok) throw new Error(`API error ${response.status}`);
-    const result = await response.json();
-    const text = result.content?.[0]?.text || result.text || 'No response generated.';
-
-    currentDraftText = text;
+    currentDraftText = result.draft || '';
     showState('draft');
     document.getElementById('outputTitle').textContent = 'Appeal Letter';
-    document.getElementById('draftOutput').innerHTML = `<div style="white-space:pre-wrap;font-size:13px;line-height:1.8;color:var(--text)">${text}</div>
-    <div class="disclaimer-bar" style="margin-top:20px">🔒 AuraComply AI Draft — Clinician review required before submission.</div>`;
+    document.getElementById('draftOutput').innerHTML =
+      '<div style="white-space:pre-wrap;font-size:13px;line-height:1.8;color:var(--text)">'
+      + escapeHtml(currentDraftText) + '</div>'
+      + '<div class="disclaimer-bar">🔒 AuraComply AI Draft — Clinician review required before submission.</div>';
 
-  } catch(err) {
-    showState('error');
-    document.getElementById('errorMsg').innerHTML = `<strong>Error:</strong> ${err.message}`;
+  } catch (err) {
+    showError('<strong>Error:</strong> ' + escapeHtml(err.message));
   }
-  document.querySelectorAll('.btn-generate').forEach(b => b.disabled = false);
+  document.querySelectorAll('.btn-generate').forEach(function (b) { b.disabled = false; });
 }
 
-/* ── PAYER LOOKUP ── */
+/* ════════════════════════════════════════════════════════
+   [FIX 10] LOOKUP — correct endpoint + auth header
+════════════════════════════════════════════════════════ */
 async function generateLookup() {
-  const payer = document.getElementById('lookupPayer').value;
-  const state = document.getElementById('lookupState').value;
-  const question = document.getElementById('lookupQuestion').value;
+  var payer    = document.getElementById('lookupPayer').value;
+  var state    = document.getElementById('lookupState').value.trim();
+  var question = document.getElementById('lookupQuestion').value.trim();
 
   if (!payer || !question) {
-    showState('error');
-    document.getElementById('errorMsg').innerHTML = '⚠️ Please select a Payer and enter your question.';
+    showError('⚠️ Please select a Payer and enter your question.');
     return;
   }
 
-  document.querySelectorAll('.btn-generate').forEach(b => b.disabled = true);
+  document.querySelectorAll('.btn-generate').forEach(function (b) { b.disabled = true; });
   showState('loading');
   document.getElementById('outputTitle').textContent = 'Looking Up Policy…';
 
+  var headers = await getAuthHeaders();
+  if (!headers) return;
+
+  var body = {
+    patientData: {
+      name: 'Policy Lookup', dob: '', diagnosis: 'F84.0',
+      cptCode: '97153', weeks: 12,
+      bcbaName: '[Policy lookup — no patient required]',
+    },
+    payer: payer, state: state || 'Unknown', payerType: 'Commercial',
+    authType: 'lookup',
+    clinicianNotes: 'PAYER POLICY LOOKUP MODE.\nPayer: ' + payer
+      + '\nState: ' + (state || 'Not specified')
+      + '\nQuestion: ' + question
+      + '\nProvide specific payer rules, unit limits, modifier requirements, and denial triggers.',
+  };
+
   try {
-    const prompt = `You are AuraComply AI — an ABA billing specialist. Answer the following payer policy question with clinical authority and billing precision.
-Payer: ${payer}
-State: ${state || 'Not specified'}
-Question: ${question}
-Provide: specific policy rules, unit limits, modifier requirements, documentation requirements, and any known denial triggers. Be specific and actionable.`;
+    var res    = await fetch('/api/generate-pa', { method: 'POST', headers: headers, body: JSON.stringify(body) });
+    var result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'API error ' + res.status);
 
-    const response = await fetch('/.netlify/functions/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt })
-    });
-
-    if (!response.ok) throw new Error(`API error ${response.status}`);
-    const result = await response.json();
-    const text = result.content?.[0]?.text || result.text || 'No response.';
-
-    currentDraftText = text;
+    currentDraftText = result.draft || '';
     showState('draft');
     document.getElementById('outputTitle').textContent = 'Payer Policy Results';
-    document.getElementById('draftOutput').innerHTML = `<div style="white-space:pre-wrap;font-size:13px;line-height:1.8;color:var(--text)">${text}</div>`;
+    document.getElementById('draftOutput').innerHTML =
+      '<div style="white-space:pre-wrap;font-size:13px;line-height:1.8;color:var(--text)">'
+      + escapeHtml(currentDraftText) + '</div>';
 
-  } catch(err) {
-    showState('error');
-    document.getElementById('errorMsg').innerHTML = `<strong>Error:</strong> ${err.message}`;
+  } catch (err) {
+    showError('<strong>Error:</strong> ' + escapeHtml(err.message));
   }
-  document.querySelectorAll('.btn-generate').forEach(b => b.disabled = false);
+  document.querySelectorAll('.btn-generate').forEach(function (b) { b.disabled = false; });
 }
 
-/* ── COPY & DOWNLOAD ── */
+/* ── Copy & Download ── */
 function copyDraft() {
-  navigator.clipboard.writeText(currentDraftText).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = 'Copied!';
-    btn.style.color = 'var(--mint)';
-    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  navigator.clipboard.writeText(currentDraftText).then(function () {
+    var btn = document.getElementById('copyBtn');
+    btn.textContent = 'Copied!'; btn.style.color = 'var(--mint)';
+    setTimeout(function () { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
   });
 }
-
 function downloadDraft() {
-  const blob = new Blob([currentDraftText], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `AuraComply_PA_Draft_${new Date().toISOString().slice(0,10)}.txt`;
+  var blob = new Blob([currentDraftText], { type: 'text/plain' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href   = url;
+  a.download = 'AuraComply_PA_' + new Date().toISOString().slice(0,10) + '.txt';
   a.click();
   URL.revokeObjectURL(url);
 }
 
-/* ── INIT ── */
-document.addEventListener('DOMContentLoaded', () => {
+/* ── DOM helpers ── */
+function escapeHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function section(num, title, content) {
+  return '<div class="draft-section"><div class="draft-section-head">'
+    + '<span class="draft-section-num">§' + num + '</span> ' + title
+    + '</div><div class="draft-section-body">' + content + '</div></div>';
+}
+function kv(key, val) {
+  if (!val) return '';
+  return '<div class="draft-kv"><span class="draft-kv-key">' + key + '</span>'
+    + '<span class="draft-kv-val">' + escapeHtml(val) + '</span></div>';
+}
+function bullets(arr) {
+  if (!arr || !arr.length) return '';
+  return arr.map(function (b, i) {
+    return '<div class="bullet-item"><span class="bullet-num">•</span><span>' + escapeHtml(b) + '</span></div>';
+  }).join('');
+}
+function numberedBullets(arr) {
+  if (!arr || !arr.length) return '';
+  return arr.map(function (b, i) {
+    return '<div class="bullet-item"><span class="bullet-num">' + (i+1) + '</span><span>' + escapeHtml(b) + '</span></div>';
+  }).join('');
+}
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', function () {
   initAuth();
   updateMUE();
-  console.log('%cAuraComply AI v2.1 initialized', 'color:#1b5cdb;font-weight:700');
+  console.log('%cAuraComply AI v3.1 initialized', 'color:#1b5cdb;font-weight:700');
 });
 </script>
 
