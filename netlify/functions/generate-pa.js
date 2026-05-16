@@ -1,252 +1,435 @@
 // netlify/functions/generate-pa.js
-// SECURITY: API key via process.env only — never expose to client
+// AuraComply AI — PA Generation Engine v3.0
+// Model: claude-sonnet-4-6 (upgraded from haiku — PA drafts need reasoning depth)
+// Auth:  Netlify Identity JWT → context.clientContext.user
+// Sync:  session keys aura_auth / aura_user / aura_name set by login.html
+//
+// HOW AUTH FLOWS FROM login.html → app.html → THIS FUNCTION:
+//   1. login.html writes sessionStorage.aura_auth = "true", aura_user = email
+//   2. app.html reads sessionStorage, calls netlifyIdentity.currentUser()
+//      to get the JWT access_token
+//   3. app.html passes token in Authorization: Bearer <token> header
+//   4. Netlify validates JWT and populates context.clientContext.user here
+//   5. This function rejects any request missing a valid identity
+//
+// FRONTEND CALL PATTERN (paste into app.html fetch):
+//   const token = netlifyIdentity.currentUser()?.token?.access_token;
+//   fetch('/api/generate-pa', {
+//     method: 'POST',
+//     headers: {
+//       'Content-Type': 'application/json',
+//       'Authorization': `Bearer ${token}`   ← required
+//     },
+//     body: JSON.stringify({ patientData, payer, state, payerType, ... })
+//   });
 
-// ═══════════════════════════════════════════════════════
-// PAYER RULES
-// ═══════════════════════════════════════════════════════
+"use strict";
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+const MODEL   = "claude-sonnet-4-6";   // upgraded: PA drafts need reasoning depth
+const CLAUDE  = "https://api.anthropic.com/v1/messages";
+const VERSION = "2023-06-01";
+
+// Fields that must exist before we hit Claude
+const REQUIRED_PATIENT_FIELDS = ["name", "dob", "diagnosis", "cptCode", "weeks"];
+
+// MUE (Medically Unlikely Edit) hard caps — CMS / payer universal
+const DAILY_HOUR_CAP  = 8;    // 8 hrs/day combined ABA codes
+const DAILY_UNIT_CAP  = 32;   // 8 hrs × 4 units/hr
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PAYER RULES — Single Source of Truth
+// Keeps validate-pa.js and generate-pa.js in perfect alignment.
+// Any payer rule change goes here ONLY.
+// ═══════════════════════════════════════════════════════════════════════════
 
 const PAYER_RULES = {
-  medicaid: `
-    MEDICAID ABA PA RULES:
-    - Governed by EPSDT — must cover medically necessary ABA for children under 21
+
+  medicaid: {
+    label: "Medicaid / EPSDT",
+    weeklyUnitCap: { "97153": 40, "97155": 32, "97156": 8,  "97154": 16, "97157": 8, "97158": 16 },
+    dailyHourCap:  8,
+    requiresMdOrder:    false,
+    requiresFBA:        true,
+    requiresVBMAPP:     true,
+    diagnosisWindow:    null,       // EPSDT — no expiry on diagnosis
+    renewalMonths:      6,
+    portal:             "State Medicaid portal",
+    turnaroundDays:     { standard: 3, urgent: 1 },
+    modifiers:          ["HO", "HN", "95", "GT"],
+    notes: `
+    - EPSDT mandates coverage of medically necessary ABA for members under 21
     - CPTs requiring PA: 97153, 97154, 97155, 97156, 97157, 97158
-    - Hard cap: 8 hours per day combined across all ABA codes
-    - 97153: max 40 units per week (10 hours)
-    - 97155: max 8 units per day, BCBA must be present
-    - 97156: max 8 units per week (2 hours) for family guidance
-    - Required: VB-MAPP or ABLLS-R within 6 months, DSM-5 ASD diagnosis,
-      FBA for behavior reduction goals, 6-month treatment plan signed by BCBA
-    - Modifiers: HO (BCBA supervision), HN (bachelor level),
-      95 (telehealth), GT (some states use GT instead of 95)
-    - Renewal: every 6 months with progress data
-    - Medicaid ID required on every PA form
-  `,
-  anthem: `
-    ANTHEM ABA PA RULES:
-    - CPTs requiring PA: 97153, 97155 always. 97156 bundled in most plans
-    - 97153: PA required for more than 10 hours per week
-    - 97155: max 8 hours per week without peer review
-    - 97156: max 2 hours per week
-    - Hard cap: 8 hours per day combined
+    - 97153: max 40 units/week (10 hrs); 97155: max 8 units/day, BCBA must be present
+    - 97156: max 8 units/week (2 hrs) family guidance
+    - Required docs: VB-MAPP or ABLLS-R within 6 months, DSM-5 ASD diagnosis,
+      FBA for behavior-reduction goals, 6-month treatment plan signed by BCBA
+    - Modifiers: HO (BCBA), HN (bachelor level), 95 or GT (telehealth — state-specific)
+    - Medicaid member ID required on every PA form
+    - Renewal: every 6 months with progress data and updated FBA`,
+  },
+
+  anthem: {
+    label: "Anthem / BCBS Anthem",
+    weeklyUnitCap: { "97153": 40, "97155": 32, "97156": 8,  "97154": 16, "97157": 8, "97158": 16 },
+    dailyHourCap:  8,
+    requiresMdOrder:    false,
+    requiresFBA:        true,
+    requiresVBMAPP:     true,
+    diagnosisWindow:    36,         // months
+    renewalMonths:      6,
+    portal:             "Availity",
+    turnaroundDays:     { standard: 5, urgent: 1 },
+    modifiers:          ["HO", "95"],
+    notes: `
+    - CPTs requiring PA: 97153 (>10 hrs/week), 97155 always, 97156 bundled
+    - 97155: max 8 hrs/week without peer review; above triggers clinical review
+    - 97156: max 2 hrs/week
+    - Hard cap: 8 hrs/day combined
     - Required: ASD diagnosis within 3 years, EIBI documentation for children under 7,
-      BCBA credentials and state license number, progress notes last 6 months if renewal
-    - Modifiers: HO for BCBA supervision, 95 for telehealth
-    - Portal: Availity
-    - Auth turnaround: 3 to 5 business days standard, 1 day urgent
-  `,
-  uhc: `
-    UNITEDHEALTHCARE ABA PA RULES:
-    - CPTs requiring PA: all of 97153 through 97158
-    - 97153: peer review triggered above 30 hours per week
-    - 97155: requires MD or DO order on file, max 8 hours per week
-    - 97156: max 4 hours per week
-    - Hard cap: 8 hours per day combined
+      BCBA credentials and state license number
+    - Renewal: progress notes covering last 6 months required
+    - Modifiers: HO (BCBA supervision), 95 (telehealth)
+    - Portal: Availity | Turnaround: 3–5 business days standard, 1 day urgent`,
+  },
+
+  uhc: {
+    label: "UnitedHealthcare / Optum",
+    weeklyUnitCap: { "97153": 120, "97155": 32, "97156": 16, "97154": 16, "97157": 8, "97158": 16 },
+    dailyHourCap:  8,
+    requiresMdOrder:    true,       // MD/DO order required for 97155
+    requiresFBA:        true,
+    requiresVBMAPP:     true,
+    diagnosisWindow:    null,
+    renewalMonths:      6,
+    portal:             "uhcprovider.com",
+    turnaroundDays:     { standard: 3, urgent: 1 },
+    modifiers:          ["HO", "95"],
+    notes: `
+    - CPTs requiring PA: all 97153–97158
+    - 97153: peer review triggered above 30 hrs/week
+    - 97155: requires active MD or DO order on file; max 8 hrs/week
+    - 97156: max 4 hrs/week
+    - Hard cap: 8 hrs/day combined
     - Required: UHC-credentialed provider, FBA for all new auths,
       active BACB certification, MD order for 97155
-    - Modifiers: HO for BCBA level, 95 for telehealth
-    - Portal: uhcprovider.com
-    - Auth turnaround: 3 business days standard, 24 hours urgent
-  `,
-  bcbs: `
-    BCBS ABA PA RULES:
-    - Note: BCBS varies by state affiliate — confirm with specific plan
-    - CPTs requiring PA: all of 97153 through 97158
-    - Behavioral health auth is separate from medical
-    - 97153: up to 40 hours per week with justification
-    - 97156: typically 2 to 4 hours per week
-    - Hard cap: 8 hours per day MUE limit
-    - Required: BCBA license verification, ASD diagnosis within 2 to 3 years,
+    - Modifiers: HO (BCBA level), 95 (telehealth)
+    - Portal: uhcprovider.com | Turnaround: 3 business days, 24 hrs urgent`,
+  },
+
+  bcbs: {
+    label: "Blue Cross Blue Shield",
+    weeklyUnitCap: { "97153": 160, "97155": 32, "97156": 16, "97154": 16, "97157": 8, "97158": 16 },
+    dailyHourCap:  8,
+    requiresMdOrder:    false,
+    requiresFBA:        true,
+    requiresVBMAPP:     true,
+    diagnosisWindow:    36,
+    renewalMonths:      6,
+    portal:             "Varies by state affiliate",
+    turnaroundDays:     { standard: 5, urgent: 2 },
+    modifiers:          ["HO", "95"],
+    notes: `
+    - NOTE: BCBS varies by state affiliate — confirm rules with specific plan
+    - CPTs requiring PA: all 97153–97158
+    - Behavioral health auth is separate from medical auth
+    - 97153: up to 40 hrs/week with strong clinical justification
+    - 97156: typically 2–4 hrs/week
+    - Hard cap: 8 hrs/day MUE limit
+    - Required: BCBA license verification, ASD diagnosis within 2–3 years,
       individualized treatment plan with SMART goals, FBA for behavior reduction
-    - Modifiers: HO for BCBA supervision, 95 for telehealth
-  `,
-  aetna: `
-    AETNA ABA PA RULES:
-    - CPTs requiring PA: all of 97153 through 97158
+    - Modifiers: HO (BCBA supervision), 95 (telehealth)`,
+  },
+
+  aetna: {
+    label: "Aetna / CVS Health",
+    weeklyUnitCap: { "97153": 32, "97155": 32, "97156": 8,  "97154": 16, "97157": 8, "97158": 16 },
+    dailyHourCap:  8,
+    requiresMdOrder:    true,       // physician referral required
+    requiresFBA:        true,
+    requiresVBMAPP:     true,
+    diagnosisWindow:    24,
+    renewalMonths:      6,
+    portal:             "Availity or NaviMedix",
+    turnaroundDays:     { standard: 3, urgent: 1 },
+    modifiers:          ["HO", "95"],
+    notes: `
+    - CPTs requiring PA: all 97153–97158
     - Aetna uses their own Behavioral Health PA form
-    - 97153: up to 40 hours per week with strong clinical justification
-    - 97155: max 8 hours per week without peer review
-    - 97156: max 2 hours per week standard
-    - Hard cap: 8 hours per day combined
-    - Required: DSM-5 ASD diagnosis confirmed not suspected, evaluation report,
-      FBA for behavior reduction goals, BCBA credentials, physician referral on file
+    - 97153: up to 32 units/week (8 hrs) — above triggers peer review
+    - 97155: max 8 hrs/week without peer review
+    - 97156: max 2 hrs/week standard
+    - Hard cap: 8 hrs/day combined
+    - Required: DSM-5 ASD diagnosis CONFIRMED (not suspected), evaluation report,
+      FBA for behavior-reduction goals, BCBA credentials, physician referral
     - Diagnosis must be within 2 years
     - Common denials: missing FBA, diagnosis not confirmed, hours exceed threshold
-    - Modifiers: HO for BCBA services, 95 for telehealth
-    - Portal: Availity or NaviMedix
-    - Auth turnaround: 3 business days standard, 1 day urgent
-  `,
-  cigna: `
-    CIGNA ABA PA RULES:
-    - CPTs requiring PA: 97153, 97155 always. 97156 bundled in most plans
-    - Hard cap: 8 hours per day combined
+    - Modifiers: HO (BCBA services), 95 (telehealth)
+    - Portal: Availity or NaviMedix | Turnaround: 3 days standard, 1 day urgent`,
+  },
+
+  cigna: {
+    label: "Cigna / Evernorth",
+    weeklyUnitCap: { "97153": 40, "97155": 32, "97156": 8,  "97154": 16, "97157": 8, "97158": 16 },
+    dailyHourCap:  8,
+    requiresMdOrder:    false,
+    requiresFBA:        true,
+    requiresVBMAPP:     true,
+    diagnosisWindow:    36,
+    renewalMonths:      6,
+    portal:             "Cigna for Health Care Professionals portal",
+    turnaroundDays:     { standard: 5, urgent: 2 },
+    modifiers:          ["HO", "95"],
+    notes: `
+    - CPTs requiring PA: 97153, 97155 always; 97156 bundled most plans
+    - Hard cap: 8 hrs/day combined
     - Modifiers: HO, 95 standard
     - Required: BCBA credentials, ASD diagnosis, treatment plan
-    - State-specific rule — confirm with payer policy for exact caps
-  `,
-  molina: `
-    MOLINA HEALTHCARE ABA PA RULES:
+    - State-specific rules apply — confirm exact caps with payer policy`,
+  },
+
+  molina: {
+    label: "Molina Healthcare",
+    weeklyUnitCap: { "97153": 40, "97155": 32, "97156": 8,  "97154": 16, "97157": 8, "97158": 16 },
+    dailyHourCap:  8,
+    requiresMdOrder:    false,
+    requiresFBA:        true,
+    requiresVBMAPP:     true,
+    diagnosisWindow:    null,
+    renewalMonths:      6,
+    portal:             "Molina state portal",
+    turnaroundDays:     { standard: 5, urgent: 2 },
+    modifiers:          ["HO", "95", "GT"],
+    notes: `
     - Medicaid MCO — EPSDT applies for members under 21
-    - CPTs requiring PA: all of 97153 through 97158
-    - Hard cap: 8 hours per day combined
+    - CPTs requiring PA: all 97153–97158
+    - Hard cap: 8 hrs/day combined
     - Required: VB-MAPP or ABLLS-R, DSM-5 diagnosis, treatment plan, BCBA credentials
     - Modifiers: HO, 95 or GT depending on state
-    - State specific rules — confirm with your state Molina plan
-  `
+    - State-specific rules — confirm with your state Molina plan`,
+  },
+
 };
 
-// ═══════════════════════════════════════════════════════
-// SYSTEM PROMPT
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// CPT CODE REFERENCE
+// ═══════════════════════════════════════════════════════════════════════════
+
+const CPT_REFERENCE = {
+  "97153": { name: "Adaptive Behavior Treatment (Individual DTT)",   unit: "15 min", provider: "BT/RBT under BCBA" },
+  "97154": { name: "Group Adaptive Behavior Treatment",              unit: "15 min", provider: "BT/RBT under BCBA" },
+  "97155": { name: "Adaptive Behavior Treatment with Protocol Mod",  unit: "15 min", provider: "BCBA (HO required)" },
+  "97156": { name: "Family Adaptive Behavior Treatment Guidance",    unit: "15 min", provider: "BCBA (HO required)" },
+  "97157": { name: "Multiple-Family Group Behavior Treatment",       unit: "15 min", provider: "BCBA (HO required)" },
+  "97158": { name: "Group Adaptive Behavior Treatment with Protocol",unit: "15 min", provider: "BCBA (HO required)" },
+};
+
+const ICD10_REFERENCE = {
+  "F84.0": "Autistic Disorder (Classic Autism) — DSM-5",
+  "F84.5": "Asperger Syndrome — DSM-5",
+  "F84.8": "Other Pervasive Developmental Disorders",
+  "F84.9": "Pervasive Developmental Disorder, Unspecified",
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PROMPT BUILDERS
+// ═══════════════════════════════════════════════════════════════════════════
 
 const buildSystemPrompt = (payer, state, payerType) => {
-  const rules = PAYER_RULES[payer.toLowerCase()] ||
-    `Payer: ${payer} | State: ${state} | Type: ${payerType}. Confirm rules with payer policy.`;
+  const payerKey  = (payer || "medicaid").toLowerCase();
+  const rules     = PAYER_RULES[payerKey];
+  const rulesText = rules
+    ? `PAYER: ${rules.label} | PORTAL: ${rules.portal}
+DAILY HOUR CAP: ${rules.dailyHourCap} hrs | RENEWAL: every ${rules.renewalMonths} months
+REQUIRES MD ORDER: ${rules.requiresMdOrder} | REQUIRES FBA: ${rules.requiresFBA}
+DIAGNOSIS WINDOW: ${rules.diagnosisWindow ? rules.diagnosisWindow + " months" : "No expiry (EPSDT)"}
+MODIFIERS: ${rules.modifiers.join(", ")}
+TURNAROUND: ${rules.turnaroundDays.standard} days standard / ${rules.turnaroundDays.urgent} day urgent
+RULES:${rules.notes}`
+    : `Payer: ${payer} | State: ${state} | Type: ${payerType}. Confirm rules with payer policy before submission.`;
 
-  return `You are an ABA prior authorization specialist for AuraComply AI.
+  return `You are an expert ABA prior authorization specialist for AuraComply AI.
+Your drafts must meet clinical and payer standards to survive peer review.
 STATE: ${state} | PAYER: ${payer} | TYPE: ${payerType}
 
-PAYER RULES:
-${rules}
+${rulesText}
 
-CPT CODES:
-97153=Individual DTT | 97154=Group DTT | 97155=BCBA Protocol Mod
-97156=Family Training | 97157=Multi-Family Group | 97158=Group w/Protocol
+CPT CODE REFERENCE:
+${Object.entries(CPT_REFERENCE).map(([cpt, v]) => `${cpt}: ${v.name} | ${v.unit} | ${v.provider}`).join("\n")}
 
-ICD-10: F84.0=Autistic Disorder | F84.5=Asperger | F84.8=Other PDD | F84.9=PDD NOS
+ICD-10 REFERENCE:
+${Object.entries(ICD10_REFERENCE).map(([code, label]) => `${code}: ${label}`).join("\n")}
 
-RULES:
-- Hard cap: 8 hrs/day combined (97153+97154+97155+97158)
-- Units = 15 min increments
-- Never invent rules — mark unknowns as "confirm with payer"
-- End every response: --- AURACOMPLY DRAFT — Clinician review required before submission. ---
+HARD RULES — NEVER VIOLATE:
+1. Daily cap: ${DAILY_HOUR_CAP} hrs/day combined (${DAILY_UNIT_CAP} units) across 97153+97154+97155+97158
+2. Units = 15-min increments (1 hr = 4 units)
+3. Never invent facts — mark unknowns as "[CONFIRM WITH PROVIDER]"
+4. Never suggest diagnosis — only use the provided ICD-10
+5. 97155 always requires HO modifier; always requires BCBA as rendering provider
+6. SMART goals must be measurable with baseline data, target, and timeline
+7. Section 9 LMN bullets must use the Proof Triplet format:
+   Assessment finding → Functional Loss → Least Restrictive Environment justification
+8. End EVERY response with the compliance footer
 
-Output valid JSON matching this exact structure — no extra keys, no missing keys:
+OUTPUT FORMAT — return ONLY valid JSON, no markdown, no preamble, no explanation.
+The JSON must match this exact schema (all keys required, no extras):
 {
-  "section1":  { "header":"", "bullets":["","","","",""] },
-  "section2":  { "memberId":"", "dob":"", "age":"", "gender":"", "address":"", "payerType":"", "payerName":"", "planId":"" },
-  "section3":  { "cpt":"", "description":"", "unitsPerWeek":0, "unitsPerMonth":0, "unitType":"15 min", "hrsPerDay":0, "hrsPerWeek":0, "effectiveDates":"", "authType":"" },
-  "section4":  { "bcbaName":"", "bcbaLicense":"", "bcbaNpi":"", "physician":"", "physicianNpi":"", "clinic":"", "clinicNpi":"", "enrollmentStatus":"" },
-  "section5":  { "icd10":"", "diagnosisDate":"", "diagnosticTool":"", "assessmentMethod":"", "assessmentDate":"", "keyFindings":["","",""], "impairments":{"communication":"","social":"","adl":"","safety":"","behavior":""}, "goals":["","","","","","",""] },
-  "section6":  { "placeOfService":"", "telehealth":"", "telehealthModifier":"", "payerTelehealthNote":"" },
-  "section7":  { "units97156":0, "units97157":0, "whoAttends":"", "frequency":"", "barriers":"" },
-  "section8":  { "requestType":"", "priorAuthNumber":"", "priorDates":"", "notes":"", "mueCompliance":"" },
-  "section9":  { "bullets":["","","","","","",""], "physicianSignature":"", "bcbaSignature":"" },
-  "section10": { "checklist":["","","","",""] },
-  "section11": { "bullets":["","","","",""] }
-}`;
+  "section1":  { "header": "", "bullets": ["","","","",""] },
+  "section2":  { "memberId": "", "dob": "", "age": "", "gender": "", "address": "",
+                 "payerType": "", "payerName": "", "planId": "" },
+  "section3":  { "cpt": "", "description": "", "unitsPerWeek": 0, "unitsPerMonth": 0,
+                 "unitType": "15 min", "hrsPerDay": 0, "hrsPerWeek": 0,
+                 "effectiveDates": "", "authType": "" },
+  "section4":  { "bcbaName": "", "bcbaLicense": "", "bcbaNpi": "", "physician": "",
+                 "physicianNpi": "", "clinic": "", "clinicNpi": "", "enrollmentStatus": "" },
+  "section5":  { "icd10": "", "diagnosisDate": "", "diagnosticTool": "",
+                 "assessmentMethod": "", "assessmentDate": "",
+                 "keyFindings": ["","",""],
+                 "impairments": { "communication": "", "social": "", "adl": "",
+                                  "safety": "", "behavior": "" },
+                 "goals": ["","","","","","",""] },
+  "section6":  { "placeOfService": "", "telehealth": "", "telehealthModifier": "",
+                 "payerTelehealthNote": "" },
+  "section7":  { "units97156": 0, "units97157": 0, "whoAttends": "",
+                 "frequency": "", "barriers": "" },
+  "section8":  { "requestType": "", "priorAuthNumber": "", "priorDates": "",
+                 "notes": "", "mueCompliance": "" },
+  "section9":  { "bullets": ["","","","","","",""],
+                 "physicianSignature": "", "bcbaSignature": "" },
+  "section10": { "checklist": ["","","","",""] },
+  "section11": { "bullets": ["","","","",""] }
+}
+After the JSON, on a new line write exactly:
+--- AURACOMPLY DRAFT — Clinician review required before submission. ---`;
 };
 
-// ═══════════════════════════════════════════════════════
-// MESSAGE HELPERS
-// ═══════════════════════════════════════════════════════
-
-const add_user_message = (messages, prompt) => {
-  messages.push({ role: "user", content: prompt });
-};
-
-const add_assistant_message = (messages, prefill) => {
-  messages.push({ role: "assistant", content: prefill });
-};
-
-// ═══════════════════════════════════════════════════════
-// BUILD USER PROMPT
-// ═══════════════════════════════════════════════════════
-
-const buildUserPrompt = (body) => {
+const buildUserPrompt = (body, userEmail) => {
   const {
-    patientData: p,
-    payer, state, payerType, payerName,
+    patientData: p, payer, state, payerType, payerName,
     authType, clinicianNotes, isMedicaidArmed
   } = body;
 
-  return `Generate PA JSON for all 11 sections:
+  // Pre-calculate units for Claude so it doesn't have to do math
+  const hrsPerWeek   = parseFloat(p.hoursPerWeek) || 0;
+  const unitsPerWeek = Math.round(hrsPerWeek * 4);
+  const weeks        = parseInt(p.weeks) || 12;
+  const unitsPerMonth = Math.round((unitsPerWeek / 7) * 30.44);
 
+  // Flag MUE breach before sending so Claude can address it
+  const mueFlag = (hrsPerWeek / 5) > DAILY_HOUR_CAP
+    ? `⚠ REQUESTED HOURS EXCEED ${DAILY_HOUR_CAP} HR/DAY CAP — address in Section 8 mueCompliance`
+    : "MUE compliant";
+
+  return `Generate a complete 11-section ABA PA draft. Submitted by: ${userEmail}
+
+REQUEST PARAMETERS:
 state=${state}
 payer=${payer}
 payer_type=${payerType || "Medicaid"}
 payer_name=${payerName || payer}
 auth_type=${authType || "initial"}
 medicaid_armed=${isMedicaidArmed || "yes"}
+mue_status=${mueFlag}
 
-patient:
-  id=${p.insuranceId || ""}
+PATIENT:
+  insurance_id=${p.insuranceId || "[CONFIRM WITH PROVIDER]"}
   name=${p.name}
   dob=${p.dob}
-  gender=${p.gender || ""}
-  address=${p.address || ""}
+  gender=${p.gender || "[CONFIRM WITH PROVIDER]"}
+  address=${p.address || "[CONFIRM WITH PROVIDER]"}
 
-diagnosis:
+DIAGNOSIS:
   icd10=${p.diagnosis}
-  date=${p.diagnosisDate || ""}
-  tool=${p.diagnosticTool || ""}
+  label=${ICD10_REFERENCE[p.diagnosis] || "Confirm with provider"}
+  date=${p.diagnosisDate || "[CONFIRM WITH PROVIDER]"}
+  tool=${p.diagnosticTool || "[CONFIRM WITH PROVIDER]"}
 
-assessment:
+ASSESSMENT:
   type=${p.assessmentType || "VB-MAPP"}
-  vbmapp=${p.vbmapp || ""}
-  abllsr=${p.abllsr || ""}
-  vineland=${p.vineland || ""}
-  date=${p.assessDate || ""}
+  vbmapp_score=${p.vbmapp || "[CONFIRM WITH PROVIDER]"}
+  abllsr_score=${p.abllsr || "[CONFIRM WITH PROVIDER]"}
+  vineland_score=${p.vineland || "[CONFIRM WITH PROVIDER]"}
+  date=${p.assessDate || "[CONFIRM WITH PROVIDER]"}
 
-provider:
-  bcba=${p.bcbaName || ""}
-  license=${p.bcbaLicense || ""}
-  bcba_npi=${p.bcbaNpi || ""}
-  physician=${p.supervisingMd || ""}
-  clinic=${p.clinicName || ""}
-  clinic_npi=${p.clinicNpi || ""}
+PROVIDER:
+  bcba_name=${p.bcbaName || "[CONFIRM WITH PROVIDER]"}
+  bcba_license=${p.bcbaLicense || "[CONFIRM WITH PROVIDER]"}
+  bcba_npi=${p.bcbaNpi || "[CONFIRM WITH PROVIDER]"}
+  supervising_physician=${p.supervisingMd || "[CONFIRM WITH PROVIDER]"}
+  clinic=${p.clinicName || "[CONFIRM WITH PROVIDER]"}
+  clinic_npi=${p.clinicNpi || "[CONFIRM WITH PROVIDER]"}
 
-service:
+SERVICE:
   cpt=${p.cptCode}
-  hrs_per_week=${p.hoursPerWeek || ""}
-  weeks=${p.weeks}
-  start=${p.startDate || ""}
+  cpt_description=${CPT_REFERENCE[p.cptCode]?.name || "See CPT reference"}
+  hrs_per_week=${hrsPerWeek}
+  units_per_week=${unitsPerWeek}
+  units_per_month=${unitsPerMonth}
+  weeks=${weeks}
+  start_date=${p.startDate || "[CONFIRM WITH PROVIDER]"}
   setting=${p.setting || "Home"}
   telehealth=${p.telehealth || "No"}
-  prior_auth=${p.priorAuthNumber || "N/A"}
+  prior_auth_number=${p.priorAuthNumber || "N/A"}
 
-notes=${clinicianNotes || "See clinical documentation."}`;
+CLINICIAN NOTES:
+${clinicianNotes || "See clinical documentation on file."}
+
+Return ONLY the JSON object. No markdown. No explanation.`;
 };
 
-// ═══════════════════════════════════════════════════════
-// CHAT — calls Claude API
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// CLAUDE API CALL — with retry on 529 (overload) and 503
+// ═══════════════════════════════════════════════════════════════════════════
 
-const chat = async (messages, systemPrompt) => {
-  const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model:          "claude-haiku-4-5",
-      max_tokens:     4096,
-      system:         systemPrompt,
-      messages:       messages,
-      stop_sequences: ["```"],
-    }),
-  });
+const callClaude = async (messages, systemPrompt, retries = 2) => {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const res = await fetch(CLAUDE, {
+      method: "POST",
+      headers: {
+        "Content-Type":      "application/json",
+        "x-api-key":         process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": VERSION,
+      },
+      body: JSON.stringify({
+        model:          MODEL,
+        max_tokens:     4096,
+        system:         systemPrompt,
+        messages,
+        // Prefill forces Claude to start with { — no preamble, no markdown
+        // stop_sequences prevents Claude from writing anything after the JSON
+        stop_sequences: ["--- AURACOMPLY"],
+      }),
+    });
 
-  if (!claudeResponse.ok) {
-    const errText = await claudeResponse.text();
-    throw new Error(`Claude API ${claudeResponse.status}: ${errText.slice(0, 300)}`);
+    if (res.ok) {
+      const data = await res.json();
+      return { text: (data?.content?.[0]?.text || "").trim(), usage: data.usage };
+    }
+
+    // Retry on transient errors
+    if ((res.status === 529 || res.status === 503) && attempt < retries) {
+      await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+      continue;
+    }
+
+    const errText = await res.text();
+    throw new Error(`Claude API ${res.status}: ${errText.slice(0, 400)}`);
   }
-
-  const data = await claudeResponse.json();
-  const text = (data?.content?.[0]?.text || "").trim();
-  return { text, usage: data.usage };
 };
 
-// ═══════════════════════════════════════════════════════
-// SAFE JSON PARSER
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// JSON PARSER — robust, strips markdown fences, finds outermost { }
+// ═══════════════════════════════════════════════════════════════════════════
 
 const safeParseJSON = (text) => {
   try {
     const cleaned = text
-      .replace(/```json\s*/gi, "")
-      .replace(/```\s*/gi, "")
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/,      "")
+      .replace(/```\s*$/,      "")
       .trim();
     const start = cleaned.indexOf("{");
     const end   = cleaned.lastIndexOf("}");
@@ -257,196 +440,257 @@ const safeParseJSON = (text) => {
   }
 };
 
-// ═══════════════════════════════════════════════════════
-// FORMAT STRUCTURED JSON INTO READABLE DRAFT TEXT
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// DRAFT FORMATTER — structured JSON → readable text for clinician review
+// ═══════════════════════════════════════════════════════════════════════════
 
 const formatDraft = (s, payer, state) => {
-  try {
-    return `PRIOR AUTHORIZATION DRAFT — AuraComply AI
-═══════════════════════════════════════════════
+  const bullet  = (arr) => (arr || []).map(b => `  • ${b}`).join("\n");
+  const numbered = (arr) => (arr || []).map((g, i) => `  ${i + 1}. ${g}`).join("\n");
+  const check   = (arr) => (arr || []).map(c => `  ☐ ${c}`).join("\n");
+
+  return `PRIOR AUTHORIZATION DRAFT — AuraComply AI
+Payer: ${payer} | State: ${state}
+Generated: ${new Date().toUTCString()}
+══════════════════════════════════════════════════════════
 
 SECTION 1 — PRIOR AUTHORIZATION HEADER
 ${s.section1?.header || ""}
-${(s.section1?.bullets || []).map((b, i) => `• ${b}`).join("\n")}
+${bullet(s.section1?.bullets)}
 
 SECTION 2 — PATIENT METADATA
-Medicaid ID / Member ID: ${s.section2?.memberId || ""}
-Date of Birth: ${s.section2?.dob || ""}
-Age: ${s.section2?.age || ""}
-Gender: ${s.section2?.gender || ""}
-Address: ${s.section2?.address || ""}
-Payer Type: ${s.section2?.payerType || ""}
-Payer Name: ${s.section2?.payerName || ""}
-Plan ID: ${s.section2?.planId || ""}
+  Medicaid ID / Member ID : ${s.section2?.memberId || ""}
+  Date of Birth            : ${s.section2?.dob || ""}
+  Age                      : ${s.section2?.age || ""}
+  Gender                   : ${s.section2?.gender || ""}
+  Address                  : ${s.section2?.address || ""}
+  Payer Type               : ${s.section2?.payerType || ""}
+  Payer Name               : ${s.section2?.payerName || ""}
+  Plan ID                  : ${s.section2?.planId || ""}
 
 SECTION 3 — SERVICE DATA BY CPT
-CPT Code: ${s.section3?.cpt || ""}
-Service Description: ${s.section3?.description || ""}
-Units Per Week: ${s.section3?.unitsPerWeek || ""}
-Units Per Month: ${s.section3?.unitsPerMonth || ""}
-Unit Type: ${s.section3?.unitType || "15 min"}
-Hours Per Day: ${s.section3?.hrsPerDay || ""}
-Hours Per Week: ${s.section3?.hrsPerWeek || ""}
-Effective Dates: ${s.section3?.effectiveDates || ""}
-Authorization Type: ${s.section3?.authType || ""}
+  CPT Code          : ${s.section3?.cpt || ""}
+  Description       : ${s.section3?.description || ""}
+  Units / Week      : ${s.section3?.unitsPerWeek || ""}
+  Units / Month     : ${s.section3?.unitsPerMonth || ""}
+  Unit Type         : ${s.section3?.unitType || "15 min"}
+  Hours / Day       : ${s.section3?.hrsPerDay || ""}
+  Hours / Week      : ${s.section3?.hrsPerWeek || ""}
+  Effective Dates   : ${s.section3?.effectiveDates || ""}
+  Authorization Type: ${s.section3?.authType || ""}
 
 SECTION 4 — PROVIDER AND CREDENTIALING
-Rendering BCBA: ${s.section4?.bcbaName || ""}
-BCBA License: ${s.section4?.bcbaLicense || ""}
-BCBA NPI: ${s.section4?.bcbaNpi || ""}
-Supervising Physician: ${s.section4?.physician || ""}
-Physician NPI: ${s.section4?.physicianNpi || ""}
-Clinic / Agency: ${s.section4?.clinic || ""}
-Clinic NPI: ${s.section4?.clinicNpi || ""}
-Enrollment Status: ${s.section4?.enrollmentStatus || ""}
+  Rendering BCBA        : ${s.section4?.bcbaName || ""}
+  BCBA License          : ${s.section4?.bcbaLicense || ""}
+  BCBA NPI              : ${s.section4?.bcbaNpi || ""}
+  Supervising Physician : ${s.section4?.physician || ""}
+  Physician NPI         : ${s.section4?.physicianNpi || ""}
+  Clinic / Agency       : ${s.section4?.clinic || ""}
+  Clinic NPI            : ${s.section4?.clinicNpi || ""}
+  Enrollment Status     : ${s.section4?.enrollmentStatus || ""}
 
 SECTION 5 — CLINICAL DOCUMENTATION
-ICD-10 Diagnosis: ${s.section5?.icd10 || ""}
-Date of Diagnosis: ${s.section5?.diagnosisDate || ""}
-Diagnostic Tool: ${s.section5?.diagnosticTool || ""}
-Assessment Method: ${s.section5?.assessmentMethod || ""}
-Assessment Date: ${s.section5?.assessmentDate || ""}
+  ICD-10 Diagnosis  : ${s.section5?.icd10 || ""}
+  Diagnosis Date    : ${s.section5?.diagnosisDate || ""}
+  Diagnostic Tool   : ${s.section5?.diagnosticTool || ""}
+  Assessment Method : ${s.section5?.assessmentMethod || ""}
+  Assessment Date   : ${s.section5?.assessmentDate || ""}
 
-Key Findings:
-${(s.section5?.keyFindings || []).map((f, i) => `• ${f}`).join("\n")}
+  Key Findings:
+${bullet(s.section5?.keyFindings)}
 
-Functional Impairments:
-- Communication: ${s.section5?.impairments?.communication || ""}
-- Social Interaction: ${s.section5?.impairments?.social || ""}
-- Activities of Daily Living: ${s.section5?.impairments?.adl || ""}
-- Safety: ${s.section5?.impairments?.safety || ""}
-- Behavior: ${s.section5?.impairments?.behavior || ""}
+  Functional Impairments:
+    Communication       : ${s.section5?.impairments?.communication || ""}
+    Social Interaction  : ${s.section5?.impairments?.social || ""}
+    Activities of Daily : ${s.section5?.impairments?.adl || ""}
+    Safety              : ${s.section5?.impairments?.safety || ""}
+    Behavior            : ${s.section5?.impairments?.behavior || ""}
 
-Treatment Plan Goals:
-${(s.section5?.goals || []).map((g, i) => `${i + 1}. ${g}`).join("\n")}
+  Treatment Plan Goals (SMART):
+${numbered(s.section5?.goals)}
 
 SECTION 6 — SETTING AND MODALITY
-Place of Service: ${s.section6?.placeOfService || ""}
-Telehealth: ${s.section6?.telehealth || ""}
-Telehealth Modifier: ${s.section6?.telehealthModifier || ""}
-Payer Telehealth Note: ${s.section6?.payerTelehealthNote || ""}
+  Place of Service      : ${s.section6?.placeOfService || ""}
+  Telehealth            : ${s.section6?.telehealth || ""}
+  Telehealth Modifier   : ${s.section6?.telehealthModifier || ""}
+  Payer Telehealth Note : ${s.section6?.payerTelehealthNote || ""}
 
 SECTION 7 — PARENT AND CAREGIVER INVOLVEMENT
-97156 Units Per Month: ${s.section7?.units97156 || ""}
-97157 Units Per Month: ${s.section7?.units97157 || ""}
-Who Attends: ${s.section7?.whoAttends || ""}
-Frequency: ${s.section7?.frequency || ""}
-Barriers: ${s.section7?.barriers || ""}
+  97156 Units / Month : ${s.section7?.units97156 || ""}
+  97157 Units / Month : ${s.section7?.units97157 || ""}
+  Who Attends         : ${s.section7?.whoAttends || ""}
+  Frequency           : ${s.section7?.frequency || ""}
+  Barriers            : ${s.section7?.barriers || ""}
 
 SECTION 8 — AUTHORIZATION FLAGS
-Request Type: ${s.section8?.requestType || ""}
-Prior Authorization Number: ${s.section8?.priorAuthNumber || ""}
-Prior Service Dates: ${s.section8?.priorDates || ""}
-Special Notes: ${s.section8?.notes || ""}
-MUE Compliance: ${s.section8?.mueCompliance || ""}
+  Request Type          : ${s.section8?.requestType || ""}
+  Prior Auth Number     : ${s.section8?.priorAuthNumber || ""}
+  Prior Service Dates   : ${s.section8?.priorDates || ""}
+  Special Notes         : ${s.section8?.notes || ""}
+  MUE Compliance        : ${s.section8?.mueCompliance || ""}
 
-SECTION 9 — MEDICAL NECESSITY SUMMARY
-${(s.section9?.bullets || []).map((b, i) => `• ${b}`).join("\n")}
+SECTION 9 — MEDICAL NECESSITY SUMMARY (LMN)
+${bullet(s.section9?.bullets)}
 
-Physician Signature: ${s.section9?.physicianSignature || ""}
-BCBA Signature: ${s.section9?.bcbaSignature || ""}
+  Physician Signature : ${s.section9?.physicianSignature || "[BCBA to obtain before submission]"}
+  BCBA Signature      : ${s.section9?.bcbaSignature || "[Required]"}
 
 SECTION 10 — PRE-SUBMISSION CHECKLIST
-${(s.section10?.checklist || []).map(c => `☐ ${c}`).join("\n")}
+${check(s.section10?.checklist)}
 
 SECTION 11 — AURACOMPLY AI ALIGNMENT
-${(s.section11?.bullets || []).map((b, i) => `• ${b}`).join("\n")}
+${bullet(s.section11?.bullets)}
 
-═══════════════════════════════════════════════
+══════════════════════════════════════════════════════════
 --- AURACOMPLY DRAFT — Clinician review required before submission. ---`;
-  } catch {
-    return "Error formatting draft. Raw data available in structured field.";
-  }
 };
 
-// ═══════════════════════════════════════════════════════
-// MAIN FUNCTION
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN HANDLER
+// ═══════════════════════════════════════════════════════════════════════════
 
-export default async (req) => {
+export default async (req, context) => {
+
+  // ── 1. Method guard ────────────────────────────────────────────────────
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
 
+  // ── 2. Auth guard (Netlify Identity) ───────────────────────────────────
+  // Netlify validates the Bearer JWT and populates context.clientContext.user
+  // If no valid Identity token → reject.
+  // Frontend MUST pass: Authorization: Bearer <netlifyIdentity.currentUser().token.access_token>
+  const netlifyUser = context?.clientContext?.user;
+  if (!netlifyUser) {
+    return Response.json(
+      { error: "Unauthorized. Please sign in.", status: "auth_error" },
+      { status: 401 }
+    );
+  }
+
+  // Extract user identity for audit trail — matches login.html session keys
+  const userEmail = netlifyUser.email || "unknown";
+  const userName  = netlifyUser.user_metadata?.full_name || userEmail.split("@")[0];
+
+  // ── 3. Generate request ID for audit trail ─────────────────────────────
+  const requestId = `pa-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
   try {
-    const body = await req.json();
+
+    // ── 4. Parse and validate body ────────────────────────────────────────
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return Response.json(
+        { error: "Invalid JSON body", status: "validation_error", requestId },
+        { status: 400 }
+      );
+    }
+
     const { patientData, payer, state, payerType } = body;
 
-    // Validate required fields
-    const required = ["name", "dob", "diagnosis", "cptCode", "weeks"];
-    const missing  = required.filter(f => !patientData?.[f]);
+    // Validate required patient fields
+    const missing = REQUIRED_PATIENT_FIELDS.filter(f => !patientData?.[f]);
     if (missing.length > 0) {
       return Response.json({
-        error:  `Missing required fields: ${missing.join(", ")}`,
-        status: "validation_error"
+        error:     `Missing required fields: ${missing.join(", ")}`,
+        status:    "validation_error",
+        requestId,
       }, { status: 400 });
     }
 
     if (!payer || !state) {
       return Response.json({
-        error:  "Payer and state are required.",
-        status: "validation_error"
+        error:     "payer and state are required.",
+        status:    "validation_error",
+        requestId,
       }, { status: 400 });
     }
 
-    // Build messages
-    const messages = [];
-    add_user_message(messages, buildUserPrompt(body));
-    add_assistant_message(messages, "```json");
+    // Sanitize string inputs — strip HTML/script injection
+    const sanitize = (v) => typeof v === "string" ? v.replace(/<[^>]*>/g, "").slice(0, 500) : v;
+    const safeP    = Object.fromEntries(Object.entries(patientData).map(([k, v]) => [k, sanitize(v)]));
 
-    // Call Claude
+    // ── 5. MUE pre-check ─────────────────────────────────────────────────
+    const hrsPerWeek = parseFloat(safeP.hoursPerWeek) || 0;
+    const hrsPerDay  = hrsPerWeek / 5;
+    const mueBreached = hrsPerDay > DAILY_HOUR_CAP;
+
+    // ── 6. Build messages and call Claude ─────────────────────────────────
     const systemPrompt = buildSystemPrompt(payer, state, payerType || "Medicaid");
-    const { text, usage } = await chat(messages, systemPrompt);
+    const userPrompt   = buildUserPrompt({ ...body, patientData: safeP }, userEmail);
 
-    if (!text) {
-      return Response.json({
-        error:  "Claude returned empty response",
-        status: "api_error"
-      }, { status: 500 });
-    }
+    const messages = [
+      { role: "user",      content: userPrompt },
+      // Prefill: forces Claude to output JSON immediately without preamble
+      { role: "assistant", content: "{" },
+    ];
 
-    // Parse JSON
-    const structured = safeParseJSON(text);
+    const { text, usage } = await callClaude(messages, systemPrompt);
+
+    // The prefill added "{" as the first assistant token — re-attach it
+    const fullText = "{" + text;
+
+    // ── 7. Parse JSON ─────────────────────────────────────────────────────
+    const structured = safeParseJSON(fullText);
 
     if (!structured) {
+      // Return raw text so the frontend can still show something useful
       return Response.json({
-        draft:       text,
+        draft:       fullText,
         structured:  null,
         status:      "success_raw",
-        warning:     "JSON parse failed — returning raw text.",
+        warning:     "JSON parse failed — raw text returned. Review manually.",
         payer, state, payerType,
+        requestId,
+        generatedBy: userEmail,
         generatedAt: new Date().toISOString(),
-        meta: {
-          model:        "claude-haiku-4-5",
-          inputTokens:  usage?.input_tokens,
-          outputTokens: usage?.output_tokens
-        }
+        meta:        { model: MODEL, inputTokens: usage?.input_tokens, outputTokens: usage?.output_tokens },
       });
     }
 
-    // Format structured JSON into readable draft text
+    // ── 8. Format readable draft text ─────────────────────────────────────
     const draft = formatDraft(structured, payer, state);
 
+    // ── 9. Build payer-rule summary for frontend display ──────────────────
+    const payerKey  = (payer || "").toLowerCase();
+    const payerRule = PAYER_RULES[payerKey];
+    const payerMeta = payerRule ? {
+      label:          payerRule.label,
+      portal:         payerRule.portal,
+      turnaround:     payerRule.turnaroundDays,
+      renewalMonths:  payerRule.renewalMonths,
+      requiresMdOrder:payerRule.requiresMdOrder,
+    } : null;
+
+    // ── 10. Return enriched response ──────────────────────────────────────
     return Response.json({
       draft,
       structured,
-      status:      "success",
+      status:       "success",
       payer, state, payerType,
-      generatedAt: new Date().toISOString(),
+      mueWarning:   mueBreached
+        ? `Requested ${hrsPerWeek} hrs/week = ${hrsPerDay.toFixed(1)} hrs/day — exceeds ${DAILY_HOUR_CAP} hr/day cap. Review Section 8.`
+        : null,
+      payerMeta,
+      requestId,
+      generatedBy:  userEmail,
+      generatedAt:  new Date().toISOString(),
       meta: {
-        model:        "claude-haiku-4-5",
+        model:        MODEL,
         inputTokens:  usage?.input_tokens,
-        outputTokens: usage?.output_tokens
-      }
+        outputTokens: usage?.output_tokens,
+      },
     });
 
   } catch (err) {
-    console.error("Function error:", err.message);
+    console.error(`[generate-pa] requestId=${requestId} user=${userEmail} error=${err.message}`);
     return Response.json({
-      error:  "Server error",
-      detail: err.message,
-      status: "server_error"
+      error:     "Server error generating PA draft.",
+      detail:    err.message,
+      status:    "server_error",
+      requestId,
     }, { status: 500 });
   }
 };
