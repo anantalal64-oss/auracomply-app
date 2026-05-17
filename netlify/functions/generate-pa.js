@@ -55,7 +55,7 @@ const PAYER_RULES = {
     requiresMdOrder:    false,
     requiresFBA:        true,
     requiresVBMAPP:     true,
-    diagnosisWindow:    null,       // EPSDT — no expiry on diagnosis
+    diagnosisWindow:    null,
     renewalMonths:      6,
     portal:             "State Medicaid portal",
     turnaroundDays:     { standard: 3, urgent: 1 },
@@ -79,7 +79,7 @@ const PAYER_RULES = {
     requiresMdOrder:    false,
     requiresFBA:        true,
     requiresVBMAPP:     true,
-    diagnosisWindow:    36,         // months
+    diagnosisWindow:    36,
     renewalMonths:      6,
     portal:             "Availity",
     turnaroundDays:     { standard: 5, urgent: 1 },
@@ -100,7 +100,7 @@ const PAYER_RULES = {
     label: "UnitedHealthcare / Optum",
     weeklyUnitCap: { "97153": 120, "97155": 32, "97156": 16, "97154": 16, "97157": 8, "97158": 16 },
     dailyHourCap:  8,
-    requiresMdOrder:    true,       // MD/DO order required for 97155
+    requiresMdOrder:    true,
     requiresFBA:        true,
     requiresVBMAPP:     true,
     diagnosisWindow:    null,
@@ -148,7 +148,7 @@ const PAYER_RULES = {
     label: "Aetna / CVS Health",
     weeklyUnitCap: { "97153": 32, "97155": 32, "97156": 8,  "97154": 16, "97157": 8, "97158": 16 },
     dailyHourCap:  8,
-    requiresMdOrder:    true,       // physician referral required
+    requiresMdOrder:    true,
     requiresFBA:        true,
     requiresVBMAPP:     true,
     diagnosisWindow:    24,
@@ -312,13 +312,11 @@ const buildUserPrompt = (body, userEmail) => {
     authType, clinicianNotes, isMedicaidArmed
   } = body;
 
-  // Pre-calculate units for Claude so it doesn't have to do math
   const hrsPerWeek   = parseFloat(p.hoursPerWeek) || 0;
   const unitsPerWeek = Math.round(hrsPerWeek * 4);
   const weeks        = parseInt(p.weeks) || 12;
   const unitsPerMonth = Math.round((unitsPerWeek / 7) * 30.44);
 
-  // Flag MUE breach before sending so Claude can address it
   const mueFlag = (hrsPerWeek / 5) > DAILY_HOUR_CAP
     ? `⚠ REQUESTED HOURS EXCEED ${DAILY_HOUR_CAP} HR/DAY CAP — address in Section 8 mueCompliance`
     : "MUE compliant";
@@ -398,8 +396,6 @@ const callClaude = async (messages, systemPrompt, retries = 2) => {
         max_tokens:     4096,
         system:         systemPrompt,
         messages,
-        // Prefill forces Claude to start with { — no preamble, no markdown
-        // stop_sequences prevents Claude from writing anything after the JSON
         stop_sequences: ["--- AURACOMPLY"],
       }),
     });
@@ -409,7 +405,6 @@ const callClaude = async (messages, systemPrompt, retries = 2) => {
       return { text: (data?.content?.[0]?.text || "").trim(), usage: data.usage };
     }
 
-    // Retry on transient errors
     if ((res.status === 529 || res.status === 503) && attempt < retries) {
       await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
       continue;
@@ -421,7 +416,7 @@ const callClaude = async (messages, systemPrompt, retries = 2) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// JSON PARSER — robust, strips markdown fences, finds outermost { }
+// JSON PARSER
 // ═══════════════════════════════════════════════════════════════════════════
 
 const safeParseJSON = (text) => {
@@ -441,7 +436,7 @@ const safeParseJSON = (text) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// DRAFT FORMATTER — structured JSON → readable text for clinician review
+// DRAFT FORMATTER
 // ═══════════════════════════════════════════════════════════════════════════
 
 const formatDraft = (s, payer, state) => {
@@ -556,21 +551,22 @@ export default async (req, context) => {
     return new Response("Method not allowed", { status: 405 });
   }
 
-  // ── 2. Auth guard (Netlify Identity) ───────────────────────────────────
-  // Netlify validates the Bearer JWT and populates context.clientContext.user
-  // If no valid Identity token → reject.
-  // Frontend MUST pass: Authorization: Bearer <netlifyIdentity.currentUser().token.access_token>
+  // ── 2. Auth guard ──────────────────────────────────────────────────────
+  // DEV_MODE=true in Netlify env vars bypasses Netlify Identity for testing.
+  // Set DEV_MODE=false (or remove it) before going live with real users.
+  const DEV_MODE = process.env.DEV_MODE === "true";
   const netlifyUser = context?.clientContext?.user;
-  if (!netlifyUser) {
+
+  if (!DEV_MODE && !netlifyUser) {
     return Response.json(
       { error: "Unauthorized. Please sign in.", status: "auth_error" },
       { status: 401 }
     );
   }
 
-  // Extract user identity for audit trail — matches login.html session keys
-  const userEmail = netlifyUser.email || "unknown";
-  const userName  = netlifyUser.user_metadata?.full_name || userEmail.split("@")[0];
+  // Use real identity if available, otherwise use dev placeholder
+  const userEmail = netlifyUser?.email || "dev-test@auracomply.ai";
+  const userName  = netlifyUser?.user_metadata?.full_name || "Dev Test User";
 
   // ── 3. Generate request ID for audit trail ─────────────────────────────
   const requestId = `pa-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -590,7 +586,6 @@ export default async (req, context) => {
 
     const { patientData, payer, state, payerType } = body;
 
-    // Validate required patient fields
     const missing = REQUIRED_PATIENT_FIELDS.filter(f => !patientData?.[f]);
     if (missing.length > 0) {
       return Response.json({
@@ -608,7 +603,6 @@ export default async (req, context) => {
       }, { status: 400 });
     }
 
-    // Sanitize string inputs — strip HTML/script injection
     const sanitize = (v) => typeof v === "string" ? v.replace(/<[^>]*>/g, "").slice(0, 500) : v;
     const safeP    = Object.fromEntries(Object.entries(patientData).map(([k, v]) => [k, sanitize(v)]));
 
@@ -623,20 +617,16 @@ export default async (req, context) => {
 
     const messages = [
       { role: "user",      content: userPrompt },
-      // Prefill: forces Claude to output JSON immediately without preamble
       { role: "assistant", content: "{" },
     ];
 
     const { text, usage } = await callClaude(messages, systemPrompt);
-
-    // The prefill added "{" as the first assistant token — re-attach it
     const fullText = "{" + text;
 
     // ── 7. Parse JSON ─────────────────────────────────────────────────────
     const structured = safeParseJSON(fullText);
 
     if (!structured) {
-      // Return raw text so the frontend can still show something useful
       return Response.json({
         draft:       fullText,
         structured:  null,
