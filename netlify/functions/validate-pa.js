@@ -1,19 +1,13 @@
 // netlify/functions/validate-pa.js
-// AuraComply AI — PA Validation Engine v3.0
-// Model: claude-haiku-4-5-20251001 (fast + cheap — correct for validation tasks)
-// Auth:  Netlify Identity JWT → context.clientContext.user
-//
-// KEY BUG FIXED FROM v2:
-//   OLD stop_sequences: ["}}}"]  ← BROKEN — three closing braces never appear
-//   NEW stop_sequences: ["```"]  ← correct: stops Claude adding markdown after JSON
-//
-// PAYER_CAPS imported from same source-of-truth as generate-pa.js.
-// Any cap change goes in generate-pa.js PAYER_RULES — validate-pa.js
-// mirrors it via PAYER_CAPS below (kept in sync by hand or a shared module).
+// AuraComply AI — PA Validation Engine v3.1
+// CHANGES FROM v3.0:
+//   [FIX 1] Added DEV_MODE bypass to match generate-pa.js (was missing — caused 401 on all test calls)
+//   [FIX 2] Made userEmail null-safe for DEV_MODE path
+// Everything else is IDENTICAL to original v3.0
 
 "use strict";
 
-const MODEL   = "claude-haiku-4-5-20251001";  // correct model string
+const MODEL   = "claude-haiku-4-5-20251001";
 const CLAUDE  = "https://api.anthropic.com/v1/messages";
 const VERSION = "2023-06-01";
 
@@ -34,7 +28,6 @@ const PAYER_CAPS = {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SCORING — deterministic pre-score before hitting Claude
-// Each deduction has a code so the frontend can show targeted help text.
 // ═══════════════════════════════════════════════════════════════════════════
 
 const DEDUCTIONS = {
@@ -57,8 +50,6 @@ function scoreToRiskLabel(score) {
   return "High";
 }
 
-// ── Deterministic pre-score (fast, no API call) ──────────────────────────
-
 function preScore(draft, payer, hoursPerWeek, diagnosisDateStr) {
   const payerKey = (payer || "medicaid").toLowerCase();
   const caps     = PAYER_CAPS[payerKey] || PAYER_CAPS.medicaid;
@@ -66,12 +57,11 @@ function preScore(draft, payer, hoursPerWeek, diagnosisDateStr) {
   let score       = 100;
   const errors    = [];
   const warnings  = [];
-  const flags     = [];     // machine-readable for frontend
+  const flags     = [];
 
   const text = (draft || "").toLowerCase();
   const hrs  = parseFloat(hoursPerWeek) || 0;
 
-  // ── MUE / daily cap ──────────────────────────────────────────────────
   const hrsPerDay = hrs / 5;
   if (hrsPerDay > caps.dailyHourCap) {
     score -= DEDUCTIONS.MUE_BREACH.points;
@@ -83,7 +73,6 @@ function preScore(draft, payer, hoursPerWeek, diagnosisDateStr) {
     flags.push(DEDUCTIONS.PEER_REVIEW_RISK);
   }
 
-  // ── MD order requirement ─────────────────────────────────────────────
   if (caps.requiresMdOrder) {
     const hasMdEvidence = text.includes("physician") || text.includes("md order") || text.includes("do order");
     if (!hasMdEvidence) {
@@ -93,7 +82,6 @@ function preScore(draft, payer, hoursPerWeek, diagnosisDateStr) {
     }
   }
 
-  // ── Diagnosis window ─────────────────────────────────────────────────
   if (caps.diagnosisWindow && diagnosisDateStr) {
     try {
       const dxDate     = new Date(diagnosisDateStr);
@@ -106,21 +94,18 @@ function preScore(draft, payer, hoursPerWeek, diagnosisDateStr) {
     } catch { /* ignore bad date */ }
   }
 
-  // ── FBA ─────────────────────────────────────────────────────────────
   if (caps.requiresFBA && !text.includes("fba") && !text.includes("functional behavior")) {
     score -= DEDUCTIONS.MISSING_FBA.points;
     errors.push("FBA (Functional Behavior Assessment) required but not mentioned in draft.");
     flags.push(DEDUCTIONS.MISSING_FBA);
   }
 
-  // ── VB-MAPP / ABLLS-R ───────────────────────────────────────────────
   if (!text.includes("vb-mapp") && !text.includes("vbmapp") && !text.includes("ablls")) {
     score -= DEDUCTIONS.MISSING_VBMAPP.points;
     warnings.push("VB-MAPP or ABLLS-R score not detected in draft — payers require standardized assessment scores.");
     flags.push(DEDUCTIONS.MISSING_VBMAPP);
   }
 
-  // ── BCBA credentials ────────────────────────────────────────────────
   const hasBCBAName = text.includes("bcba") && (text.includes("license") || text.includes("lba"));
   if (!hasBCBAName) {
     score -= DEDUCTIONS.MISSING_BCBA_CREDS.points;
@@ -134,21 +119,18 @@ function preScore(draft, payer, hoursPerWeek, diagnosisDateStr) {
     flags.push(DEDUCTIONS.MISSING_BCBA_NPI);
   }
 
-  // ── HO modifier ─────────────────────────────────────────────────────
   if ((text.includes("97155") || text.includes("97156")) && !text.includes("ho")) {
     score -= DEDUCTIONS.MISSING_HO_MOD.points;
     errors.push("HO modifier not detected for 97155/97156. Required for BCBA-level services.");
     flags.push(DEDUCTIONS.MISSING_HO_MOD);
   }
 
-  // ── Treatment goals ─────────────────────────────────────────────────
   if (!text.includes("goal") && !text.includes("smart")) {
     score -= DEDUCTIONS.MISSING_GOALS.points;
     warnings.push("SMART treatment goals not detected. All payers require measurable goals with baseline data.");
     flags.push(DEDUCTIONS.MISSING_GOALS);
   }
 
-  // ── Functional impairments ──────────────────────────────────────────
   const impairmentKeywords = ["communication", "social", "daily living", "adl", "safety", "behavior"];
   const impairmentHits = impairmentKeywords.filter(k => text.includes(k)).length;
   if (impairmentHits < 2) {
@@ -166,7 +148,7 @@ function preScore(draft, payer, hoursPerWeek, diagnosisDateStr) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SYSTEM PROMPT — instructs Claude to validate beyond the pre-score
+// SYSTEM PROMPT
 // ═══════════════════════════════════════════════════════════════════════════
 
 const VALIDATOR_SYSTEM = `You are a senior ABA billing compliance specialist and prior authorization auditor.
@@ -217,7 +199,6 @@ const callClaude = async (draft, payer, state) => {
 
   const messages = [
     { role: "user",      content: userPrompt },
-    // Prefill: forces Claude to start the JSON object immediately
     { role: "assistant", content: "{" },
   ];
 
@@ -233,8 +214,6 @@ const callClaude = async (draft, payer, state) => {
       max_tokens:     1024,
       system:         VALIDATOR_SYSTEM,
       messages,
-      // FIX: was ["}}}"] which NEVER triggered — JSON never has 3 consecutive }
-      // CORRECT: "```" stops Claude from appending markdown after the JSON object
       stop_sequences: ["```"],
     }),
   });
@@ -245,12 +224,11 @@ const callClaude = async (draft, payer, state) => {
   }
 
   const data = await res.json();
-  // Re-attach the "{" from the prefill that Claude continued from
   return "{" + (data?.content?.[0]?.text || "").trim();
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// JSON PARSER — same robust parser as generate-pa.js
+// JSON PARSER
 // ═══════════════════════════════════════════════════════════════════════════
 
 const safeParseJSON = (text) => {
@@ -270,12 +248,10 @@ const safeParseJSON = (text) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RESULT MERGER — combines deterministic pre-score with Claude's audit
-// Deduplicates errors, preserves severity, recalculates final score.
+// RESULT MERGER
 // ═══════════════════════════════════════════════════════════════════════════
 
 const mergeResults = (pre, claudeResult) => {
-  // Combine errors/warnings, dedup by first 60 chars
   const dedup = (arr) => {
     const seen = new Set();
     return arr.filter(item => {
@@ -290,8 +266,6 @@ const mergeResults = (pre, claudeResult) => {
   const warnings    = dedup([...pre.warnings,  ...(claudeResult.warnings || [])]);
   const suggestions = dedup(claudeResult.suggestions || []);
 
-  // Final score: weighted average — pre-score has higher fidelity on structure rules
-  // Claude score has higher fidelity on clinical-language quality
   const claudeScore = typeof claudeResult.score === "number" ? claudeResult.score : 70;
   const finalScore  = Math.round((pre.preScore * 0.5) + (claudeScore * 0.5));
 
@@ -304,7 +278,7 @@ const mergeResults = (pre, claudeResult) => {
     errors,
     warnings,
     suggestions,
-    flags:          pre.flags,   // machine-readable codes for frontend help text
+    flags:          pre.flags,
   };
 };
 
@@ -319,19 +293,21 @@ export default async (req, context) => {
     return new Response("Method not allowed", { status: 405 });
   }
 
-  // ── 2. Auth guard (Netlify Identity) ───────────────────────────────────
-  // Netlify validates the Bearer JWT from Authorization header
-  // and populates context.clientContext.user automatically.
-  // Frontend must pass: Authorization: Bearer <netlifyIdentity.currentUser().token.access_token>
+  // ── 2. Auth guard — [FIX 1] Added DEV_MODE bypass (was missing in v3.0) ──
+  // To enable for testing: set DEV_MODE=true in Netlify env vars
+  // To disable before going live: set DEV_MODE=false or remove it
+  const DEV_MODE    = process.env.DEV_MODE === "true";
   const netlifyUser = context?.clientContext?.user;
-  if (!netlifyUser) {
+
+  if (!DEV_MODE && !netlifyUser) {
     return Response.json(
       { error: "Unauthorized. Please sign in.", status: "auth_error" },
       { status: 401 }
     );
   }
 
-  const userEmail = netlifyUser.email || "unknown";
+  // ── [FIX 2] Null-safe userEmail for both DEV_MODE and production ───────
+  const userEmail = netlifyUser?.email || "dev-test@auracomply.ai";
 
   // ── 3. Request ID ─────────────────────────────────────────────────────
   const requestId = `val-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -379,7 +355,6 @@ export default async (req, context) => {
       };
     } catch (claudeErr) {
       console.error(`[validate-pa] Claude call failed: ${claudeErr.message}`);
-      // Degrade gracefully — return pre-score only
       claudeResult = {
         score:       pre.preScore,
         errors:      [],
@@ -388,7 +363,7 @@ export default async (req, context) => {
       };
     }
 
-    // ── 7. Merge and return final result ──────────────────────────────────
+    // ── 7. Merge and return ───────────────────────────────────────────────
     const result = mergeResults(pre, claudeResult);
 
     console.log(`[validate-pa] requestId=${requestId} user=${userEmail} score=${result.score} risk=${result.denialRiskLabel}`);
