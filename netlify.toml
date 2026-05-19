@@ -5,6 +5,16 @@
 [functions]
   directory = "netlify/functions"
 
+[[redirects]]
+  from = "/api/generate-pa"
+  to = "/.netlify/functions/generate-pa"
+  status = 200
+
+[[redirects]]
+  from = "/api/validate-pa"
+  to = "/.netlify/functions/validate-pa"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]
