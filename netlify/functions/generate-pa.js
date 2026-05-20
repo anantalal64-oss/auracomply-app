@@ -417,6 +417,15 @@ exports.handler = async function(event, context) {
     return respond(405, { error: "Method not allowed" });
   }
 
+  // ── [FIX] ANTHROPIC_API_KEY guard — surface missing key immediately ──
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return respond(500, {
+      error: "Server configuration error: ANTHROPIC_API_KEY is not set.",
+      detail: "Go to Netlify → Site configuration → Environment variables and add ANTHROPIC_API_KEY = your Anthropic secret key (starts with sk-ant-). Then redeploy.",
+      status: "config_error",
+    });
+  }
+
   // Auth guard — DEV_MODE bypasses Netlify Identity for testing
   var DEV_MODE    = process.env.DEV_MODE === "true";
   var netlifyUser = context && context.clientContext && context.clientContext.user
@@ -513,8 +522,19 @@ exports.handler = async function(event, context) {
 
   } catch (err) {
     console.error("[generate-pa] requestId=" + requestId + " user=" + userEmail + " error=" + err.message);
+
+    // ── [FIX] Surface real error message — distinguish API key vs other errors ──
+    var isKeyError = err.message && (
+      err.message.includes("401") ||
+      err.message.includes("authentication") ||
+      err.message.includes("api_key") ||
+      err.message.includes("invalid x-api-key")
+    );
+
     return respond(500, {
-      error: "Server error generating PA draft.",
+      error: isKeyError
+        ? "Anthropic API key error. Check that ANTHROPIC_API_KEY is set correctly in Netlify environment variables."
+        : "Server error generating PA draft.",
       detail: err.message,
       status: "server_error",
       requestId: requestId,

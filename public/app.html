@@ -1118,7 +1118,7 @@ async function generateAppeal() {
   var headers = await getAuthHeaders();
   if (!headers) return;
   var body = {
-    patientData: { name: document.getElementById('appealPatient').value.trim() || '[Patient name not provided]', dob: '', diagnosis: 'F84.0', cptCode: (document.getElementById('deniedCodes').value.trim().split(',')[0] || '97153').trim(), weeks: 12, bcbaName: '[BCBA — confirm before submission]' },
+    patientData: { name: document.getElementById('appealPatient').value.trim() || '[Patient name not provided]', dob: 'N/A', diagnosis: 'F84.0', cptCode: (document.getElementById('deniedCodes').value.trim().split(',')[0] || '97153').trim(), weeks: 12, bcbaName: '[BCBA — confirm before submission]' },
     payer: payer, state: document.getElementById('appealState').value.trim() || 'Unknown', payerType: 'Commercial', authType: 'appeal',
     clinicianNotes: 'APPEAL MODE.\nDenial reason: ' + denial + '\nDenied codes: ' + (document.getElementById('deniedCodes').value.trim() || 'Not specified') + '\nClinical justification: ' + (document.getElementById('appealClinical').value.trim() || 'See medical records.') + '\nGenerate a complete ABA prior authorization appeal letter addressing this denial.',
   };
@@ -1145,7 +1145,7 @@ async function generateLookup() {
   var headers = await getAuthHeaders();
   if (!headers) return;
   var body = {
-    patientData: { name: 'Policy Lookup', dob: '', diagnosis: 'F84.0', cptCode: '97153', weeks: 12, bcbaName: '[Policy lookup — no patient required]' },
+    patientData: { name: 'Policy Lookup', dob: 'N/A', diagnosis: 'F84.0', cptCode: '97153', weeks: 12, bcbaName: '[Policy lookup — no patient required]' },
     payer: payer, state: document.getElementById('lookupState').value.trim() || 'Unknown', payerType: 'Commercial', authType: 'lookup',
     clinicianNotes: 'PAYER POLICY LOOKUP MODE.\nPayer: ' + payer + '\nState: ' + (document.getElementById('lookupState').value.trim() || 'Not specified') + '\nQuestion: ' + question + '\nProvide specific payer rules, unit limits, modifier requirements, and denial triggers.',
   };
