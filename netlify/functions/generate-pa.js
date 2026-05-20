@@ -6,7 +6,7 @@
 
 "use strict";
 
-const MODEL   = "claude-sonnet-4-20250514";
+const MODEL   = "claude-haiku-4-5-20251001";
 const CLAUDE  = "https://api.anthropic.com/v1/messages";
 const VERSION = "2023-06-01";
 
