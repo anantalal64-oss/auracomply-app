@@ -6,7 +6,7 @@
 
 "use strict";
 
-const MODEL   = "claude-sonnet-4-6";
+const MODEL   = "claude-sonnet-4-20250514";
 const CLAUDE  = "https://api.anthropic.com/v1/messages";
 const VERSION = "2023-06-01";
 
@@ -417,11 +417,10 @@ exports.handler = async function(event, context) {
     return respond(405, { error: "Method not allowed" });
   }
 
-  // ── [FIX] ANTHROPIC_API_KEY guard — surface missing key immediately ──
+  // [FIX] ANTHROPIC_API_KEY guard — fail fast with clear message
   if (!process.env.ANTHROPIC_API_KEY) {
     return respond(500, {
-      error: "Server configuration error: ANTHROPIC_API_KEY is not set.",
-      detail: "Go to Netlify → Site configuration → Environment variables and add ANTHROPIC_API_KEY = your Anthropic secret key (starts with sk-ant-). Then redeploy.",
+      error: "Server configuration error: ANTHROPIC_API_KEY is not set in Netlify environment variables.",
       status: "config_error",
     });
   }
@@ -522,19 +521,16 @@ exports.handler = async function(event, context) {
 
   } catch (err) {
     console.error("[generate-pa] requestId=" + requestId + " user=" + userEmail + " error=" + err.message);
-
-    // ── [FIX] Surface real error message — distinguish API key vs other errors ──
     var isKeyError = err.message && (
       err.message.includes("401") ||
       err.message.includes("authentication") ||
       err.message.includes("api_key") ||
       err.message.includes("invalid x-api-key")
     );
-
     return respond(500, {
       error: isKeyError
-        ? "Anthropic API key error. Check that ANTHROPIC_API_KEY is set correctly in Netlify environment variables."
-        : "Server error generating PA draft.",
+        ? "Anthropic API key is invalid. Check ANTHROPIC_API_KEY in Netlify environment variables."
+        : "Server error generating PA draft: " + err.message,
       detail: err.message,
       status: "server_error",
       requestId: requestId,

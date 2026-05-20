@@ -893,8 +893,8 @@ function stopProgress() { if (progressTimer) { clearInterval(progressTimer); pro
 async function generatePA() {
   var formData = collectFormData();
   var p = formData.patientData;
-  if (!formData.payer || !formData.state || !p.diagnosis || !p.name || !p.bcbaName) {
-    showError('⚠️ Please fill in all required fields: Patient Name, State, ICD-10, BCBA Name, and Payer.');
+  if (!formData.payer || !formData.state || !p.diagnosis || !p.name || !p.bcbaName || !p.dob) {
+    showError('⚠️ Please fill in all required fields: Patient Name, Date of Birth, State, ICD-10, BCBA Name, and Payer.');
     return;
   }
 

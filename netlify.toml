@@ -1,9 +1,6 @@
 [build]
   publish = "public"
-  command = ""
-
-[functions]
-  directory = "netlify/functions"
+  functions = "netlify/functions"
 
 [[redirects]]
   from = "/api/generate-pa"
@@ -14,10 +11,3 @@
   from = "/api/validate-pa"
   to = "/.netlify/functions/validate-pa"
   status = 200
-
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-Content-Type-Options = "nosniff"
-    X-XSS-Protection = "1; mode=block"
