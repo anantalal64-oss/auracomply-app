@@ -1,8 +1,8 @@
 // netlify/functions/generate-pa.js
 // AuraComply AI — PA Generation Engine v3.1
-// CONVERTED: ESM export default → CommonJS exports.handler
-// REASON: Netlify could not parse ESM functions (showed "/" in dashboard, empty logs)
-// LOGIC: 100% identical to v3.0 — only the Node.js interface changed
+// UPDATED: Added silent P1 database save after generation
+// CHANGE: Only added saveDraftToDatabase() function and one try/catch call
+// EVERYTHING ELSE: 100% identical to v3.1 — zero generation logic changed
 
 "use strict";
 
@@ -22,7 +22,68 @@ const DAILY_HOUR_CAP  = 8;
 const DAILY_UNIT_CAP  = 32;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PAYER RULES
+// ✦ NEW — P1 DATABASE SAVE (silent — never blocks generation)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PAYER_ID_MAP = {
+  aetna:    "a0000001-0000-0000-0000-000000000001",
+  bcbs:     "a0000001-0000-0000-0000-000000000002",
+  anthem:   "a0000001-0000-0000-0000-000000000002",
+  uhc:      "a0000001-0000-0000-0000-000000000003",
+  cigna:    "a0000001-0000-0000-0000-000000000004",
+  molina:   "a0000001-0000-0000-0000-000000000005",
+  medicaid: "a0000001-0000-0000-0000-000000000006",
+};
+
+const saveDraftToDatabase = async (structured, payer, state, requestId, userEmail) => {
+  var supabaseUrl = process.env.SUPABASE_URL;
+  var supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  // If env vars not set yet — skip silently
+  if (!supabaseUrl || !supabaseKey) {
+    console.log("[P1-save] Supabase env vars not set — skipping save");
+    return null;
+  }
+
+  var payerKey = (payer || "medicaid").toLowerCase();
+  var payerId  = PAYER_ID_MAP[payerKey] || PAYER_ID_MAP["medicaid"];
+
+  var payload = {
+    session_id:          requestId,
+    payer_id:            payerId,
+    actor_role:          "system",
+    draft_json:          structured,
+    payer_rules_source:  "prompt_fallback",
+  };
+
+  try {
+    var res = await fetch(
+      supabaseUrl + "/functions/v1/validate-pa-draft",
+      {
+        method:  "POST",
+        headers: {
+          "Content-Type":  "application/json",
+          "Authorization": "Bearer " + supabaseKey,
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    var result = await res.json();
+    console.log("[P1-save] Draft saved — draft_id=" + (result.draft_id || "unknown") +
+      " risk=" + (result.overall_denial_risk || "?") +
+      " status=" + (result.submission_status || "?"));
+    return result.draft_id || null;
+
+  } catch (saveErr) {
+    // SILENT FAIL — user never knows, generation always succeeds
+    console.error("[P1-save] Silent fail — " + saveErr.message);
+    return null;
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PAYER RULES — unchanged from v3.1
 // ═══════════════════════════════════════════════════════════════════════════
 
 const PAYER_RULES = {
@@ -114,7 +175,7 @@ const PAYER_RULES = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CPT & ICD10 REFERENCE
+// CPT & ICD10 REFERENCE — unchanged
 // ═══════════════════════════════════════════════════════════════════════════
 
 const CPT_REFERENCE = {
@@ -134,7 +195,7 @@ const ICD10_REFERENCE = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PROMPT BUILDERS
+// PROMPT BUILDERS — unchanged
 // ═══════════════════════════════════════════════════════════════════════════
 
 const buildSystemPrompt = (payer, state, payerType) => {
@@ -274,7 +335,7 @@ Return ONLY the JSON object. No markdown. No explanation.`;
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CLAUDE API CALL — with retry on 529/503
+// CLAUDE API CALL — unchanged
 // ═══════════════════════════════════════════════════════════════════════════
 
 const callClaude = async (messages, systemPrompt, retries) => {
@@ -312,7 +373,7 @@ const callClaude = async (messages, systemPrompt, retries) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// JSON PARSER
+// JSON PARSER — unchanged
 // ═══════════════════════════════════════════════════════════════════════════
 
 const safeParseJSON = (text) => {
@@ -332,7 +393,7 @@ const safeParseJSON = (text) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// DRAFT FORMATTER
+// DRAFT FORMATTER — unchanged
 // ═══════════════════════════════════════════════════════════════════════════
 
 const formatDraft = (s, payer, state) => {
@@ -392,7 +453,7 @@ const formatDraft = (s, payer, state) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// HELPER
+// HELPER — unchanged
 // ═══════════════════════════════════════════════════════════════════════════
 
 const respond = (statusCode, data) => ({
@@ -402,22 +463,19 @@ const respond = (statusCode, data) => ({
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MAIN HANDLER — CommonJS v1
+// MAIN HANDLER — one try/catch added after successful generation
 // ═══════════════════════════════════════════════════════════════════════════
 
 exports.handler = async function(event, context) {
 
-  // CORS preflight
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 200, headers: CORS_HEADERS, body: "" };
   }
 
-  // Method guard
   if (event.httpMethod !== "POST") {
     return respond(405, { error: "Method not allowed" });
   }
 
-  // [FIX] ANTHROPIC_API_KEY guard — fail fast with clear message
   if (!process.env.ANTHROPIC_API_KEY) {
     return respond(500, {
       error: "Server configuration error: ANTHROPIC_API_KEY is not set in Netlify environment variables.",
@@ -425,7 +483,6 @@ exports.handler = async function(event, context) {
     });
   }
 
-  // Auth guard — DEV_MODE bypasses Netlify Identity for testing
   var DEV_MODE    = process.env.DEV_MODE === "true";
   var netlifyUser = context && context.clientContext && context.clientContext.user
     ? context.clientContext.user : null;
@@ -439,7 +496,6 @@ exports.handler = async function(event, context) {
 
   try {
 
-    // Parse body
     var body;
     try {
       body = JSON.parse(event.body);
@@ -465,12 +521,10 @@ exports.handler = async function(event, context) {
     var safeP    = {};
     Object.keys(patientData).forEach(function(k) { safeP[k] = sanitize(patientData[k]); });
 
-    // MUE pre-check
     var hrsPerWeek  = parseFloat(safeP.hoursPerWeek) || 0;
     var hrsPerDay   = hrsPerWeek / 5;
     var mueBreached = hrsPerDay > DAILY_HOUR_CAP;
 
-    // Build and call Claude
     var systemPrompt = buildSystemPrompt(payer, state, payerType || "Medicaid");
     var userPrompt   = buildUserPrompt(Object.assign({}, body, { patientData: safeP }), userEmail);
 
@@ -483,7 +537,6 @@ exports.handler = async function(event, context) {
     var fullText     = "{" + claudeResult.text;
     var usage        = claudeResult.usage;
 
-    // Parse JSON
     var structured = safeParseJSON(fullText);
 
     if (!structured) {
@@ -496,6 +549,14 @@ exports.handler = async function(event, context) {
         meta: { model: MODEL, inputTokens: usage && usage.input_tokens, outputTokens: usage && usage.output_tokens },
       });
     }
+
+    // ✦ NEW — Save to P1 database (silent — never blocks generation)
+    try {
+      await saveDraftToDatabase(structured, payer, state, requestId, userEmail);
+    } catch (saveErr) {
+      console.error("[P1-save] Outer catch — " + saveErr.message);
+    }
+    // ✦ END NEW
 
     var draft = formatDraft(structured, payer, state);
 
