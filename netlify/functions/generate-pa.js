@@ -550,12 +550,10 @@ exports.handler = async function(event, context) {
       });
     }
 
-    // ✦ NEW — Save to P1 database (silent — never blocks generation)
-    try {
-      await saveDraftToDatabase(structured, payer, state, requestId, userEmail);
-    } catch (saveErr) {
-      console.error("[P1-save] Outer catch — " + saveErr.message);
-    }
+    // ✦ NEW — Save to P1 database (fire-and-forget — never blocks generation)
+    saveDraftToDatabase(structured, payer, state, requestId, userEmail).catch(function(e) {
+      console.error("[P1-save] Silent fail — " + e.message);
+    });
     // ✦ END NEW
 
     var draft = formatDraft(structured, payer, state);
